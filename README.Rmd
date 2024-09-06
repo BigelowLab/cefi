@@ -42,6 +42,9 @@ uri = catalog_uri(region = "Northwest Atlantic", period = "history")
 hist = read_catalog(uri) |>
   dplyr::glimpse()
 ```
-
-
+```{r}
+uri = catalog_uri(region = "Northwest Atlantic", period = "forecast")
+fcst = read_catalog(uri) |>
+  dplyr::glimpse()
+```
 
