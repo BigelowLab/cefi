@@ -1,0 +1,47 @@
+---
+title: "CEFI"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[NOAA's Physical Science Laboratory (PSL)](https://psl.noaa.gov/) [Climate Ecosystems and Fisheries Initiative Portal](https://psl.noaa.gov/cefi_portal/) serves historical and forecast data useful in ecological studies. Data is served using a [THREDDS](https://psl.noaa.gov/thredds/catalog/Projects/CEFI/regional_mom6/catalog.html) catalog, but PSL also makes [tabular catalogs](https://psl.noaa.gov/cefi_portal/var_list_northwest_atlantic_hist_run.html) available, too.
+
+# Requirements
+
+ + [R v4.1+](https://www.r-project.org/)
+ + [rlang](https://CRAN.R-project.org/package=rlang)
+ + [dplyr](https://CRAN.R-project.org/package=dplyr)
+ + [sf](https://CRAN.R-project.org/package=sf)
+ + [stars](https://CRAN.R-project.org/package=stars)
+ + [jsonlite](https://CRAN.R-project.org/package=jsonlite)
+ + [ncdf4](https://CRAN.R-project.org/package=ncdf4)
+
+# Installation
+
+```
+remotes::install_github("BigelowLab/cefi")
+```
+
+# Usage
+
+Load the libraries needed.
+```{r}
+suppressPackageStartupMessages({
+  library(cefi)
+  library(dplyr)
+})
+```
+
+## Catalogs
+
+```{r}
+uri = catalog_uri(region = "Northwest Atlantic", period = "history")
+hist = read_catalog(uri) |>
+  dplyr::glimpse()
+```
+
+
+

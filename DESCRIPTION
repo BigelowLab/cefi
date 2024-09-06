@@ -1,0 +1,19 @@
+Package: cefi
+Type: Package
+Title: Gulf Stream data
+Version: 0.1.0
+Author: Ben Tupper [aut, cre] <btupper@bigelow.org>
+Maintainer: Ben Tupper <btupper@bigelow.org>
+URL: https://github.com/bigelowlab/cefi
+Description: R Tools for accessing the NOAA/PSL Climate Ecosystems and Fisheries Initiative Portal. 
+License: GNU3 + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.3.2
+Roxygen: list(markdown = TRUE)
+Imports:
+  rlang,
+  jsonlite,
+  ncdf4,
+  stars,
+  sf,
+  dplyr
