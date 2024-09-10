@@ -18,7 +18,7 @@ available, too.
 - [sf](https://CRAN.R-project.org/package=sf)
 - [stars](https://CRAN.R-project.org/package=stars)
 - [jsonlite](https://CRAN.R-project.org/package=jsonlite)
-- [ncdf4](https://CRAN.R-project.org/package=ncdf4)
+- [tidync](https://CRAN.R-project.org/package=tidync)
 
 # Installation
 
@@ -31,6 +31,8 @@ Load the libraries needed.
 ``` r
 suppressPackageStartupMessages({
   library(cefi)
+  library(tidync)
+  library(stars)
   library(dplyr)
 })
 ```
@@ -66,3 +68,96 @@ fcst = read_catalog(uri) |>
     ## $ Unit                   <chr> "degC", "No unit provided in netCDF", "degC", "…
     ## $ File_Name              <chr> "tob_forecast_i199303.nc", "tob_forecast_i19930…
     ## $ OPeNDAP_URL            <chr> "http://psl.noaa.gov/thredds/dodsC/Projects/CEF…
+
+# Getting data
+
+To get data select one row from either catalog, and open that resource.
+
+``` r
+nc = hist |>
+  dplyr::filter(Varible_Name == "btm_o2") |>
+  open_cefi()
+```
+
+    ## not a file: 
+    ## ' http://psl.noaa.gov/thredds/dodsC/Projects/CEFI/regional_mom6/northwest_atlantic/hist_run/ocean_cobalt_daily_2d.19930101-20191231.btm_o2.nc '
+    ## 
+    ## ... attempting remote connection
+
+    ## Connection succeeded.
+
+``` r
+nc
+```
+
+    ## 
+    ## Data Source (1): ocean_cobalt_daily_2d.19930101-20191231.btm_o2.nc ...
+    ## 
+    ## Grids (6) <dimension family> : <associated variables> 
+    ## 
+    ## [1]   D2,D3,D0 : btm_o2    **ACTIVE GRID** ( 6457722375  values per variable)
+    ## [2]   D1,D0    : time_bnds
+    ## [3]   D0       : average_DT, average_T1, average_T2, time
+    ## [4]   D1       : nv
+    ## [5]   D2       : xh
+    ## [6]   D3       : yh
+    ## 
+    ## Dimensions 4 (3 active): 
+    ##   
+    ##   dim   name  length    min    max start count   dmin   dmax unlim coord_dim 
+    ##   <chr> <chr>  <dbl>  <dbl>  <dbl> <int> <int>  <dbl>  <dbl> <lgl> <lgl>     
+    ## 1 D0    time    9861   0.5  9860.      1  9861   0.5  9860.  TRUE  TRUE      
+    ## 2 D2    xh       775 -98     -36.1     1   775 -98     -36.1 FALSE TRUE      
+    ## 3 D3    yh       845   5.27   51.9     1   845   5.27   51.9 FALSE TRUE      
+    ##   
+    ## Inactive dimensions:
+    ##   
+    ##   dim   name  length   min   max unlim coord_dim 
+    ##   <chr> <chr>  <dbl> <dbl> <dbl> <lgl> <lgl>     
+    ## 1 D1    nv         2     1     2 FALSE TRUE
+
+Next we filter the array, so that we can collect a subset of the data.
+This “overwrites” the original object, by tagging those dimensions we
+filter on with basic array navigation information that matches out
+request. You can see the change in the `dim` and `max` values of the
+active dimensions.
+
+``` r
+nc = tidync::hyper_filter(nc, time = dplyr::between(time, 1,6))
+nc
+```
+
+    ## 
+    ## Data Source (1): ocean_cobalt_daily_2d.19930101-20191231.btm_o2.nc ...
+    ## 
+    ## Grids (6) <dimension family> : <associated variables> 
+    ## 
+    ## [1]   D2,D3,D0 : btm_o2    **ACTIVE GRID** ( 6457722375  values per variable)
+    ## [2]   D1,D0    : time_bnds
+    ## [3]   D0       : average_DT, average_T1, average_T2, time
+    ## [4]   D1       : nv
+    ## [5]   D2       : xh
+    ## [6]   D3       : yh
+    ## 
+    ## Dimensions 4 (3 active): 
+    ##   
+    ##   dim   name  length    min    max start count   dmin  dmax unlim coord_dim 
+    ##   <chr> <chr>  <dbl>  <dbl>  <dbl> <int> <int>  <dbl> <dbl> <lgl> <lgl>     
+    ## 1 D0    time    9861   0.5  9860.      2     5   1.5    5.5 TRUE  TRUE      
+    ## 2 D2    xh       775 -98     -36.1     1   775 -98    -36.1 FALSE TRUE      
+    ## 3 D3    yh       845   5.27   51.9     1   845   5.27  51.9 FALSE TRUE      
+    ##   
+    ## Inactive dimensions:
+    ##   
+    ##   dim   name  length   min   max unlim coord_dim 
+    ##   <chr> <chr>  <dbl> <dbl> <dbl> <lgl> <lgl>     
+    ## 1 D1    nv         2     1     2 FALSE TRUE
+
+``` r
+s = cefi_var(nc)
+plot(s)
+```
+
+    ## downsample set to 2
+
+![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->

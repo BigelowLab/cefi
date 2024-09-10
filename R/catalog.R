@@ -27,10 +27,12 @@ catalog_uri = function(period = c("history", "forecast")[1],
 #' 
 #' @export
 #' @param uri chr, the URI of the json resource
-#' @return table of metadata
+#' @return table of metadata (of class CEFI_catalog)
 read_catalog = function(uri = catalog_uri(region = "NWA", period = "history")){
   
-  jsonlite::read_json(uri, simplifyVector= TRUE) |>
+  x = jsonlite::read_json(uri, simplifyVector= TRUE) |>
     lapply(dplyr::as_tibble) |>
     dplyr::bind_rows()
+  class(x) = c("CEFI_catalog", class(x))
+  x
 }

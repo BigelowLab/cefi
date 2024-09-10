@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
  + [sf](https://CRAN.R-project.org/package=sf)
  + [stars](https://CRAN.R-project.org/package=stars)
  + [jsonlite](https://CRAN.R-project.org/package=jsonlite)
- + [ncdf4](https://CRAN.R-project.org/package=ncdf4)
+ + [tidync](https://CRAN.R-project.org/package=tidync)
 
 # Installation
 
@@ -31,6 +31,8 @@ Load the libraries needed.
 ```{r}
 suppressPackageStartupMessages({
   library(cefi)
+  library(tidync)
+  library(stars)
   library(dplyr)
 })
 ```
@@ -47,4 +49,25 @@ uri = catalog_uri(region = "Northwest Atlantic", period = "forecast")
 fcst = read_catalog(uri) |>
   dplyr::glimpse()
 ```
+# Getting data
 
+To get data select one row from either catalog, and open that resource.
+
+```{r}
+nc = hist |>
+  dplyr::filter(Varible_Name == "btm_o2") |>
+  open_cefi()
+nc
+```
+
+Next we filter the array, so that we can collect a subset of the data. This "overwrites" the original object, by tagging those dimensions we filter on with basic array navigation information that matches out request. You can see the change in the `dim` and `max` values of the active dimensions.
+
+```{r}
+nc = tidync::hyper_filter(nc, time = dplyr::between(time, 1,6))
+nc
+```
+
+```{r}
+s = cefi_var(nc)
+plot(s)
+```

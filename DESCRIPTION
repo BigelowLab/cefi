@@ -13,7 +13,7 @@ Roxygen: list(markdown = TRUE)
 Imports:
   rlang,
   jsonlite,
-  ncdf4,
+  tidync,
   stars,
   sf,
   dplyr

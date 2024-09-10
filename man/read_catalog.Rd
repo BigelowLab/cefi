@@ -10,7 +10,7 @@ read_catalog(uri = catalog_uri(region = "NWA", period = "history"))
 \item{uri}{chr, the URI of the json resource}
 }
 \value{
-table of metadata
+table of metadata (of class CEFI_catalog)
 }
 \description{
 Read the CEFI catalog
