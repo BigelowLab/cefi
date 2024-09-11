@@ -58,7 +58,7 @@ cefi_transforms = function(x){
 #' @return stars object
 cefi_stars = function(x = cefi_open()){
     
-  a = tidync::hyper_array(x)
+  a = tidync::hyper_array(x, drop = FALSE)
   ax = cefi_transforms(x)
   
   xc = dplyr::filter(ax[[1]], .data$selected) |> dplyr::pull(var = 1)
@@ -86,7 +86,8 @@ cefi_stars = function(x = cefi_open()){
                   # but this is for rectilinear grids (which apparently that is what CEFI is)
                   stars::st_as_stars(m,
                                      dimensions = st_dimensions(x = xc, y = yc, cell_midpoints = TRUE)) |>
-                    sf::st_set_crs(4326)
+                    sf::st_set_crs(4326) |>
+                    rlang::set_names(nm)
               }, simplify = FALSE)
         # see https://github.com/r-spatial/stars/issues/440
         do.call(c, append(xx, list(along =  3))) |>
