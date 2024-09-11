@@ -4,7 +4,7 @@
 \alias{cefi_time}
 \title{Get the transformed time dimension, add a POSIXct time variable}
 \usage{
-cefi_time(x = open_cefi(), form = c("POSIXct", "Date")[2])
+cefi_time(x = cefi_open(), form = c("POSIXct", "Date")[2])
 }
 \arguments{
 \item{x}{tidync object OR a tibble of transformed time}

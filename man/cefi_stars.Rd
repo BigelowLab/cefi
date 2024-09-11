@@ -4,7 +4,7 @@
 \alias{cefi_stars}
 \title{Extract data as stars}
 \usage{
-cefi_stars(x = open_cefi())
+cefi_stars(x = cefi_open())
 }
 \arguments{
 \item{x}{tidync, likely filtered with hyper_filter}
