@@ -61,7 +61,7 @@ To get data select one row from either catalog, and open that resource which we 
 
 ```{r}
 nc = hist |>
-  dplyr::filter(Varible_Name == "btm_o2") |>
+  dplyr::filter(Variable_Name == "btm_o2") |>
   cefi_open()
 nc
 ```

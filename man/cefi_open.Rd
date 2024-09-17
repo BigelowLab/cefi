@@ -10,7 +10,7 @@ cefi_open(x = dplyr::slice(read_catalog(), 1))
 \item{x}{a (single-row) table of "CEFI_catalog" class}
 }
 \value{
-a ncdf4 object
+a tidync object
 }
 \description{
 Open a CEFI connection

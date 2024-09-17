@@ -51,13 +51,13 @@ hist = read_catalog(uri) |>
   dplyr::glimpse()
 ```
 
-    ## Rows: 42
+    ## Rows: 51
     ## Columns: 6
-    ## $ Varible_Name     <chr> "siconc", "btm_o2", "chlos", "dissicos", "talkos", "s…
-    ## $ Output_Frequency <chr> "monthly", "daily", "monthly", "monthly", "monthly", …
-    ## $ Long_Name        <chr> "ice concentration", "Bottom Oxygen", "Surface Mass C…
-    ## $ Unit             <chr> "0-1", "mol kg-1", "kg m-3", "mol m-3", "mol m-3", "m…
-    ## $ File_Name        <chr> "ice_monthly.199301-201912.siconc.nc", "ocean_cobalt_…
+    ## $ Variable_Name    <chr> "tos", "ssu_rotate", "ssu", "ssh", "sos", "sob", "tob…
+    ## $ Output_Frequency <chr> "daily", "daily", "daily", "daily", "daily", "daily",…
+    ## $ Long_Name        <chr> "Sea Surface Temperature", "Sea Surface Zonal Velocit…
+    ## $ Unit             <chr> "degC", "m s-1", "m s-1", "m", "psu", "psu", "degC", …
+    ## $ File_Name        <chr> "ocean_daily.19930101-20191231.tos.nc", "ocean_daily.…
     ## $ OPeNDAP_URL      <chr> "http://psl.noaa.gov/thredds/dodsC/Projects/CEFI/regi…
 
 ``` r
@@ -68,7 +68,7 @@ fcst = read_catalog(uri) |>
 
     ## Rows: 480
     ## Columns: 6
-    ## $ Varible_Name           <chr> "tob", "tob_anom", "tob", "tob_anom", "tob", "t…
+    ## $ Variable_Name          <chr> "tob", "tob_anom", "tob", "tob_anom", "tob", "t…
     ## $ Time_of_Initialization <chr> "1993-03", "1993-03", "1993-06", "1993-06", "19…
     ## $ Long_Name              <chr> "Sea Water Potential Temperature at Sea Floor",…
     ## $ Unit                   <chr> "degC", "No unit provided in netCDF", "degC", "…
@@ -86,7 +86,7 @@ object useful for navigating and extracting netcdf files.
 
 ``` r
 nc = hist |>
-  dplyr::filter(Varible_Name == "btm_o2") |>
+  dplyr::filter(Variable_Name == "btm_o2") |>
   cefi_open()
 nc
 ```
@@ -148,19 +148,16 @@ s
 
     ## stars object with 3 dimensions and 1 attribute
     ## attribute(s):
-    ##            Min.      1st Qu.       Median         Mean      3rd Qu.
-    ## X  3.396523e-06 0.0001841419 0.0002342721 0.0002335193 0.0002703759
-    ##            Max.   NA's
-    ## X  0.0003805129 125804
+    ##                 Min.      1st Qu.       Median         Mean      3rd Qu.
+    ## btm_o2  3.396523e-06 0.0001841419 0.0002342721 0.0002335193 0.0002703759
+    ##                 Max.   NA's
+    ## btm_o2  0.0003805129 125804
     ## dimension(s):
-    ##      from  to     offset  delta refsys point
-    ## x       1 187         NA     NA WGS 84 FALSE
-    ## y       1 264         NA     NA WGS 84 FALSE
-    ## time    1   4 1995-12-17 1 days   Date    NA
-    ##                                           values x/y
-    ## x      [-74.99998,-74.92),...,[-60.12,-60.03998) [x]
-    ## y    [40.00653,40.06775),...,[49.97996,50.00005) [y]
-    ## time                                        NULL
+    ##      from  to     offset  delta refsys point                      values x/y
+    ## X1      1 187         NA     NA WGS 84 FALSE [187x264] -75.46,...,-60.08 [x]
+    ## X2      1 264         NA     NA WGS 84 FALSE    [187x264] 40.04,...,52.3 [y]
+    ## time    1   4 1995-12-17 1 days   Date    NA                        NULL    
+    ## curvilinear grid
 
 And finally we can plot the result.
 

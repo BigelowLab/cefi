@@ -4,12 +4,18 @@
 \alias{catalog_uri}
 \title{Retrieve a catalog based upon region and period}
 \usage{
-catalog_uri(period = c("history", "forecast")[1], region = c("NWA", "NEP")[1])
+catalog_uri(
+  period = c("history", "forecast")[1],
+  region = c("NWA", "NEP")[1],
+  stub = "https://psl.noaa.gov/cefi_portal/data_index"
+)
 }
 \arguments{
 \item{period}{chr one of "history" or "forecast"}
 
 \item{region}{chr, one of "Northwest Atlantic", "NWA", "Northeast Pacific" or "NEP"}
+
+\item{stub}{chr the base uri for catalogs}
 }
 \value{
 character URL

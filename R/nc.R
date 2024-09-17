@@ -2,16 +2,15 @@
 #' 
 #' @export
 #' @param x a (single-row) table of "CEFI_catalog" class
-#' @return a ncdf4 object
+#' @return a tidync object
 cefi_open = function(x = read_catalog() |> dplyr::slice(1)){
   stopifnot(inherits(x, "CEFI_catalog"))
-  #ncdf4::nc_open(x$OPeNDAP_URL[1])
-  
   silent = options(tidync.silent = TRUE)
-  
   on.exit(options(tidync.silent = silent[[1]]))
-  
-  tidync::tidync(x$OPeNDAP_URL[1])
+  nc = tidync::tidync(x$OPeNDAP_URL[1])
+  static = static_open(x) |>
+    tidync::activate("geolon")
+  set_static(nc,static)
 }
 
 #' Get the transformed time dimension, add a POSIXct time variable
@@ -57,37 +56,25 @@ cefi_transforms = function(x){
 #' @param x tidync, likely filtered with hyper_filter
 #' @return stars object
 cefi_stars = function(x = cefi_open()){
-    
+  static = get_static(x) |>
+    tidync::activate("geolon")
   a = tidync::hyper_array(x, drop = FALSE)
   ax = cefi_transforms(x)
+  sx = tidync::hyper_transforms(static)
   
-  xc = dplyr::filter(ax[[1]], .data$selected) |> dplyr::pull(var = 1)
-  yc = dplyr::filter(ax[[2]], .data$selected) |> dplyr::pull(var = 1)
+  lonlat = static_lonlat(x)
+  
   tc = dplyr::filter(ax[[3]], .data$selected) |> dplyr::pull()
-  # we only need the following for regular grids, but we have rectilinear
-  #dx = (xc[2] - xc[1])/2
-  #dy = (yc[2] - yc[1])/2
-  #bb = c(xmin = min(xc), ymin = min(yc), xmax = max(xc), ymax = max(yc)) + 
-  #     c(-dx, -dy, dx, dy) 
-  #bb = sf::st_bbox(bb, crs = 4326)
-  #
 
   rr = lapply(names(a),
     function(nm){
         xx = apply(a[[nm]], 3,
               function(m){
-                    # ooops!  This is for regualr grids
-                    #stars::st_as_stars(bb,    
-                    #                   nx = length(xc),
-                    #                   ny = length(yc),
-                    #                   values = m) |>
-                    #  stars::st_flip("y") |>
-                    #  rlang::set_names(nm)
-                  # but this is for rectilinear grids (which apparently that is what CEFI is)
-                  stars::st_as_stars(m,
-                                     dimensions = st_dimensions(x = xc, y = yc, cell_midpoints = TRUE)) |>
+                  dimnames(m) <- NULL
+                  stars::st_as_stars(m) |>
+                    stars::st_as_stars(curvilinear = list(X1=lonlat$lon, X2=lonlat$lat)) |>
                     sf::st_set_crs(4326) |>
-                    rlang::set_names(nm)
+                  rlang::set_names(nm)
               }, simplify = FALSE)
         # see https://github.com/r-spatial/stars/issues/440
         do.call(c, append(xx, list(along =  3))) |>
@@ -125,7 +112,7 @@ cefi_var = function(x = cefi_open(),
 cefi_filter = function(x, time = NULL, ...){
   dots = as.list(substitute(list(...)))[-1L]
   if ("time" %in% names(dots)) stop("time must be listed as the first filtering argument after input x")
-  x = tidync::hyper_filter(x, ...)
+ 
   if (!is.null(time)){
     if (is.numeric(x)){
       x = tidync::hyper_filter(x, dplyr::between(time, time[1], time[2]))
@@ -137,5 +124,7 @@ cefi_filter = function(x, time = NULL, ...){
       x = tidync::hyper_filter(x, time = dplyr::between(time, ix[1], ix[2]))
     }
   }
+  x = tidync::hyper_filter(x, ...)
+  attr(x, "static") = tidync::hyper_filter(attr(x, "static"), ...)
   x
 }
