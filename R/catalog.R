@@ -45,7 +45,7 @@ which_region = function(x){
 # @return a character period nickname
 which_period = function(x){
   name = if (grepl("hist", x$OPeNDAP_URL[1], fixed = TRUE)){
-    "hist"
+    "history"
   } else if (grepl("forecast", x$OPeNDAP_URL[1], fixed = TRUE)){
     "forecast"
   } else{

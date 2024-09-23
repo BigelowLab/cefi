@@ -59,6 +59,10 @@ Assuming these catalogs will remain and stay up-to-date, we can leverage them in
 
 To get data select one row from either catalog, and open that resource which we see in R as a [tidync](https://docs.ropensci.org/tidync/) object useful for navigating and extracting netcdf files.
 
+### Historical data
+
+Let's start with historical data. 
+
 ```{r}
 nc = hist |>
   dplyr::filter(Variable_Name == "btm_o2") |>
@@ -67,6 +71,13 @@ nc
 ```
 
 Note that the spatial dimensions of the "active" grid are defined by `xh` nd `yh` not `x` and `y` or `lon` and `lat`.  That is a choice of the creator of the NetCDF resource, and so we use those names for filtering.
+
+Time requires some background understanding of the CEFI architecture coupled with the `tidync` approach to navigating the NetCDF object.  To ease that for the user we have created a function called `cefi_time()` which is a wrapper around `tidync::hyper_transforms()`, but adds a column called `time_` which can be either 'Date' of 'POSIXct' class.  
+
+```{r}
+cefi_time(nc)
+```
+
 
 Next we filter the array with `cefi_filter()`, so that we can collect a subset of the data. This function is a wrapper around the `tidync::hyper_filter()` function; we wrap because the time coordinate in the NetCDF files is not in user-friendly format.  Note that it is important that `time` comes before any other filtering element.
 
@@ -79,7 +90,7 @@ nc = cefi_filter(nc,
 
 It is important to understand that the actual data is not loaded into R (yet), think of this a prefiltering step.  To actually get the data we can call `cefi_var`.  You can explore more about prefiltering at the [tidync website](https://docs.ropensci.org/tidync/).
 
-Now we can laod the data into R, using `cefi_var()`.
+Now we can load the data into R, using `cefi_var()`.
 
 ```{r}
 s = cefi_var(nc)
@@ -98,4 +109,44 @@ plot_coast = function(){
 }
 
 plot(s, hook = plot_coast, key.pos = NULL)
+```
+
+
+### Forecast data
+
+Now let's look at forecast data.
+
+```{r}
+nc = fcst |>
+  dplyr::filter(Variable_Name == "tob" & Time_of_Initialization == "2022-12") |>
+  cefi_open()
+
+nc
+```
+
+Here time is measured in `lead` time (in months) relative to an initalization date.  But note that the actually time varying dimension is called `lead` even though we address it in the more familiar `time`. Once again we can use `cefi_time()` to expose the time-varying dimension relative to the starting date.
+
+```{r}
+cefi_time(nc)
+```
+
+
+```{r}
+nc = cefi_filter(nc, 
+                 time = as.Date(c("1994-12-01", "1995-02-01")), 
+                 xh = xh > -75 & xh < -60,
+                 yh = yh > 40 & yh < 50)
+```                 
+
+Unlike the historical runs, the forecast results include one or more ensemble member results for each time period. These are identified as `member` which you might think of as replicates.  Requesting all members for a given time is certainly possible, but probably a more common use case is to extract a summary (mean or median) or a measure of variability (standard deviation or variance).
+
+
+```{r}
+s = cefi_var(nc)
+s
+```
+In this case, there are two variables, `tob` (temperature of bottom) and `tob_anom` temperature of bottom anomaly.  Below we show only `tob`.
+
+```{r}
+plot(s['tob'], hook = plot_coast)
 ```

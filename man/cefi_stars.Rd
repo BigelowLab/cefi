@@ -4,10 +4,21 @@
 \alias{cefi_stars}
 \title{Extract data as stars}
 \usage{
-cefi_stars(x = cefi_open())
+cefi_stars(
+  x = cefi_open(),
+  collapse = NULL,
+  na.rm = TRUE,
+  var = cefi_var(x)[1]
+)
 }
 \arguments{
 \item{x}{tidync, likely filtered with hyper_filter}
+
+\item{collapse}{NULL or a function for computing summary stats}
+
+\item{na.rm}{logical, see \code{mean}}
+
+\item{var}{chr, the variable to retrieve}
 }
 \value{
 stars object

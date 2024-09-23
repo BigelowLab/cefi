@@ -8,6 +8,11 @@ cefi_open = function(x = read_catalog() |> dplyr::slice(1)){
   silent = options(tidync.silent = TRUE)
   on.exit(options(tidync.silent = silent[[1]]))
   nc = tidync::tidync(x$OPeNDAP_URL[1])
+  
+  # transfer the region and period
+  attr(nc, "cefi_region") = attr(x, "cefi_region") 
+  attr(nc, "cefi_period") = attr(x, "cefi_period") 
+  
   static = static_open(x) |>
     tidync::activate("geolon")
   set_static(nc,static)
@@ -23,13 +28,36 @@ cefi_open = function(x = read_catalog() |> dplyr::slice(1)){
 cefi_time = function(x = cefi_open(),
                      form = c("POSIXct", "Date")[2]){
   if (inherits(x, "tidync")){
-    x = tidync::activate(x, "time") |>
-      tidync::hyper_transforms() |>
-      getElement(1)
+    if (attr(x,"cefi_period") == "history"){
+      x = tidync::activate(x, "time") |>
+        tidync::hyper_transforms() |>
+        getElement(1) 
+      x = dplyr::mutate(x, time_ = as.POSIXct(.data$timestamp, format = "%Y-%m-%d %H:%H:%S", tz = "UTC"))
+      if (tolower(form[1]) == "date") x = dplyr::mutate(x, time_ = as.Date(.data$time_))
+      x
+    } else if (attr(x,"cefi_period") == "forecast") {
+      epoch = x[['attribute']] |>
+        dplyr::filter(variable == "init", name == "units") |>
+        dplyr::pull(value) |>
+        getElement(1) |>
+        as.Date(format = "days since %Y-%m-%d")
+      step = x[['attribute']] |>
+        dplyr::filter(variable == "lead", name == "units") |>
+        dplyr::pull(value) |>
+        getElement(1)
+      
+      x = tidync::activate(x, "lead") |>
+        tidync::hyper_transforms() |>
+        getElement(1) |>
+        dplyr::mutate(time_ = seq(from = epoch, length = n(), by = step))
+      if (tolower(form[1]) == "posixct") x = dplyr::mutate(x, time_ = as.POSIXct(.data$time_, tz = "UTC"))
+    } else {
+      stop("cefi_period in unknown - must be history or forecast")
+    }
+  } else {
+    stop("input must be of class tidync")
   }
- x = dplyr::mutate(x, time_ = as.POSIXct(.data$timestamp, format = "%Y-%m-%d %H:%H:%S", tz = "UTC"))
- if (tolower(form[1]) == "date") x = dplyr::mutate(x, time_ = as.Date(.data$time_))
- x
+  x
 }
 
 #' Get the hyper transforms slightly doctored for time
@@ -45,7 +73,7 @@ cefi_transforms = function(x){
   } else {
     stop("input must be 'tidync' or 'tidync_data' class object")
   }
-  if ("time" %in% names(ax)) ax[['time']] = cefi_time(ax[['time']])
+  if ("time" %in% names(ax)) ax[['time']] = cefi_time(x)
   ax
 }
 
@@ -54,17 +82,39 @@ cefi_transforms = function(x){
 #' 
 #' @export 
 #' @param x tidync, likely filtered with hyper_filter
+#' @param var chr, the variable to retrieve
+#' @param collapse NULL or a function for computing summary stats
+#' @param na.rm logical, see \code{mean}
 #' @return stars object
-cefi_stars = function(x = cefi_open()){
+cefi_stars = function(x = cefi_open(), 
+                      collapse_fun = mean,
+                      na.rm = TRUE,
+                      var = cefi_active(x)){
+  
   static = get_static(x) |>
     tidync::activate("geolon")
-  a = tidync::hyper_array(x, drop = FALSE)
+  a = tidync::hyper_array(x, select_var = var, drop = FALSE)
+  if(!is.null(collapse_fun)){
+    a = lapply(a, 
+               function(arr) {
+                 r = apply(arr, 1:3, collapse_fun, na.rm = TRUE)
+                 r[is.nan(r)] <- NA
+                 r
+               })
+  }
   ax = cefi_transforms(x)
   sx = tidync::hyper_transforms(static)
   
   lonlat = static_lonlat(x)
   
-  tc = dplyr::filter(ax[[3]], .data$selected) |> dplyr::pull()
+  period = attr(x, "cefi_period")
+  if (period == "history"){
+    tc = dplyr::filter(ax[[3]], .data$selected) |> dplyr::pull()
+  } else if (period == "forecast"){
+    tc = cefi_time(x) |>
+      dplyr::filter(selected) |> 
+      dplyr::pull()
+  }
 
   rr = lapply(names(a),
     function(nm){
@@ -83,18 +133,34 @@ cefi_stars = function(x = cefi_open()){
   do.call(c, rr)
 }
 
+#' Retrieve one or more names of the active grids
+#' 
+#' @export
+#' @param x the tidync object (possibly pre-filtered)
+#' @return character vector of active variable names
+cefi_active = function(x){
+  act = tidync::active(x)
+  dplyr::filter(x$grid, grid == act) |>
+    dplyr::pull(variables) |>
+    getElement(1) |>
+    dplyr::pull()
+}
+
+
 #' Get a CEFI variable as either a 'tidync_data' or 'stars' object
 #' 
 #' @export
 #' @param x the tidync object (possibly pre-filtered)
+#' @param var chr, the variable to retrieve
 #' @param form one of 'tidync_data' or 'stars'
 #' @return either 'tidync_data' or 'stars' object
 cefi_var = function(x = cefi_open(),
+                    var = cefi_active(x),
                     form = c("tidync_data", "stars")[2]){
   
   switch(tolower(form[1]),
-         "stars" = cefi_stars(x),
-         tidync::hyper_array(x))
+         "stars" = cefi_stars(x, var = var),
+         tidync::hyper_array(x, select_var = var))
   
 }
 
@@ -113,17 +179,34 @@ cefi_filter = function(x, time = NULL, ...){
   dots = as.list(substitute(list(...)))[-1L]
   if ("time" %in% names(dots)) stop("time must be listed as the first filtering argument after input x")
  
-  if (!is.null(time)){
+  
+  period = attr(x, "cefi_period")
+  if (period == "history"){
+    if (!is.null(time)){
+      if (is.numeric(x)){
+        x = tidync::hyper_filter(x, dplyr::between(time, time[1], time[2]))
+      } else {
+        if (inherits(time, "POSIXt")) time = as.Date(time)
+        ax = cefi_time(x)
+        ix = findInterval(time, ax$time_)
+        ix[ix < 1] = 1
+        x = tidync::hyper_filter(x, time = dplyr::between(time, ix[1], ix[2]))
+      }
+    }
+  } else if (period == "forecast"){
     if (is.numeric(x)){
-      x = tidync::hyper_filter(x, dplyr::between(time, time[1], time[2]))
+      x = tidync::hyper_filter(x, dplyr::between(lead, time[1], time[2]))
     } else {
       if (inherits(time, "POSIXt")) time = as.Date(time)
       ax = cefi_time(x)
       ix = findInterval(time, ax$time_)
       ix[ix < 1] = 1
-      x = tidync::hyper_filter(x, time = dplyr::between(time, ix[1], ix[2]))
+      x = tidync::hyper_filter(x, lead = dplyr::between(lead, ix[1], ix[2]))
     }
+  } else {
+    stop("period of data must be 'history' or 'forecast'")
   }
+  
   x = tidync::hyper_filter(x, ...)
   attr(x, "static") = tidync::hyper_filter(attr(x, "static"), ...)
   x

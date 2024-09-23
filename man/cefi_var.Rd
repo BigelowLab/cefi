@@ -4,10 +4,16 @@
 \alias{cefi_var}
 \title{Get a CEFI variable as either a 'tidync_data' or 'stars' object}
 \usage{
-cefi_var(x = cefi_open(), form = c("tidync_data", "stars")[2])
+cefi_var(
+  x = cefi_open(),
+  var = cefi_active(x)[1],
+  form = c("tidync_data", "stars")[2]
+)
 }
 \arguments{
 \item{x}{the tidync object (possibly pre-filtered)}
+
+\item{var}{chr, the variable to retrieve}
 
 \item{form}{one of 'tidync_data' or 'stars'}
 }
