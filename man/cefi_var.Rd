@@ -6,8 +6,9 @@
 \usage{
 cefi_var(
   x = cefi_open(),
-  var = cefi_active(x)[1],
-  form = c("tidync_data", "stars")[2]
+  var = cefi_active(x),
+  form = c("tidync_data", "stars")[2],
+  ...
 )
 }
 \arguments{
@@ -16,6 +17,8 @@ cefi_var(
 \item{var}{chr, the variable to retrieve}
 
 \item{form}{one of 'tidync_data' or 'stars'}
+
+\item{...}{other arguments passed through}
 }
 \value{
 either 'tidync_data' or 'stars' object

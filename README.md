@@ -55,7 +55,7 @@ hist = read_catalog(uri) |>
     ## Columns: 6
     ## $ Variable_Name    <chr> "tos", "ssu_rotate", "ssu", "ssh", "sos", "sob", "tob…
     ## $ Output_Frequency <chr> "daily", "daily", "daily", "daily", "daily", "daily",…
-    ## $ Long_Name        <chr> "Sea Surface Temperature", "Sea Surface Zonal Velocit…
+    ## $ Long_Name        <chr> "Sea Surface Temperature", "Rotated Sea Surface Zonal…
     ## $ Unit             <chr> "degC", "m s-1", "m s-1", "m", "psu", "psu", "degC", …
     ## $ File_Name        <chr> "ocean_daily.19930101-20191231.tos.nc", "ocean_daily.…
     ## $ OPeNDAP_URL      <chr> "http://psl.noaa.gov/thredds/dodsC/Projects/CEFI/regi…
@@ -183,8 +183,8 @@ s
     ## btm_o2  0.0003805129 125804
     ## dimension(s):
     ##      from  to     offset  delta refsys point                      values x/y
-    ## X1      1 187         NA     NA WGS 84 FALSE [187x264] -75.46,...,-60.08 [x]
-    ## X2      1 264         NA     NA WGS 84 FALSE    [187x264] 40.04,...,52.3 [y]
+    ## x       1 187         NA     NA WGS 84 FALSE [187x264] -75.46,...,-60.08 [x]
+    ## y       1 264         NA     NA WGS 84 FALSE    [187x264] 40.04,...,52.3 [y]
     ## time    1   4 1995-12-17 1 days   Date    NA                        NULL    
     ## curvilinear grid
 
@@ -271,13 +271,51 @@ nc = cefi_filter(nc,
 
 Unlike the historical runs, the forecast results include one or more
 ensemble member results for each time period. These are identified as
-`member` which you might think of as replicates. Requesting all members
-for a given time is certainly possible, but probably a more common use
-case is to extract a summary (mean or median) or a measure of
-variability (standard deviation or variance).
+`member` which you might think of as replicates.
+
+Here we show retrieving all of the members.
 
 ``` r
-s = cefi_var(nc)
+s = cefi_var(nc, collapse_fun = NULL)
+s
+```
+
+    ## stars object with 4 dimensions and 2 attributes
+    ## attribute(s), summary of first 1e+05 cells:
+    ##                Min.    1st Qu.    Median      Mean  3rd Qu.      Max.  NA's
+    ## tob       -1.553790 2.61702126 5.6047626 5.6676885 8.061857 16.177769 62990
+    ## tob_anom  -5.920943 0.09124082 0.8942709 0.9081095 1.519054  4.310905 62990
+    ## dimension(s):
+    ##        from  to offset delta refsys point                             values
+    ## x         1 187     NA    NA WGS 84 FALSE        [187x264] -75.46,...,-60.08
+    ## y         1 264     NA    NA WGS 84 FALSE           [187x264] 40.04,...,52.3
+    ## member    1  10      0     1     NA FALSE                               NULL
+    ## time      1   3     NA    NA   Date    NA 1995-01-01, 1995-02-01, 1995-03-01
+    ##        x/y
+    ## x      [x]
+    ## y      [y]
+    ## member    
+    ## time      
+    ## curvilinear grid
+
+To see the ensemble results for one date, we can slice-and-dice using
+indexing.In this case, there are two variables, `tob` (temperature of
+bottom) and `tob_anom` temperature of bottom anomaly. Below we show only
+`tob`.
+
+``` r
+times = st_get_dimension_values(s, "time")
+plot(s['tob'][,,,,1], hook = plot_coast)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+
+Requesting all members for a given time is possible as shown above, but
+a more common use case is to extract a summary (mean or median) or a
+measure of variability (standard deviation or variance).
+
+``` r
+s = cefi_var(nc, collapse_fun = mean)
 s
 ```
 
@@ -288,16 +326,33 @@ s
     ## tob_anom  -5.943011 0.1601234 1.041166 1.000913 1.577987  4.219558 94353
     ## dimension(s):
     ##      from  to refsys point                             values x/y
-    ## X1      1 187 WGS 84 FALSE        [187x264] -75.46,...,-60.08 [x]
-    ## X2      1 264 WGS 84 FALSE           [187x264] 40.04,...,52.3 [y]
+    ## x       1 187 WGS 84 FALSE        [187x264] -75.46,...,-60.08 [x]
+    ## y       1 264 WGS 84 FALSE           [187x264] 40.04,...,52.3 [y]
     ## time    1   3   Date    NA 1995-01-01, 1995-02-01, 1995-03-01    
     ## curvilinear grid
 
-In this case, there are two variables, `tob` (temperature of bottom) and
-`tob_anom` temperature of bottom anomaly.
+Note that the dimensionality is reduced because we computed the mean of
+the ensembles at each time.
 
 ``` r
-plot(s['tob'], hook = plot_coast)
+plot(s['tob'], hook = plot_coast, main = "Mean Temp of Bottom")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](README_files/figure-gfm/collaped_mean_plot-1.png)<!-- -->
+
+### Granularity
+
+Here we highlight the granularity of the data source by zooming in on
+the New England coastline. You can see that large embayments such as
+Penobscot and Narragansett bays are not included.
+
+``` r
+plot(dplyr::slice(s['tob'], "time",  1),
+     xlim = c(-72 , -63),
+     ylim = c(39, 45),
+     reset = FALSE,
+     axes = TRUE)
+plot(coast, add = TRUE, col = "orange")
+```
+
+![](README_files/figure-gfm/granularity-1.png)<!-- -->

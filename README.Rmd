@@ -138,15 +138,46 @@ nc = cefi_filter(nc,
                  yh = yh > 40 & yh < 50)
 ```                 
 
-Unlike the historical runs, the forecast results include one or more ensemble member results for each time period. These are identified as `member` which you might think of as replicates.  Requesting all members for a given time is certainly possible, but probably a more common use case is to extract a summary (mean or median) or a measure of variability (standard deviation or variance).
+Unlike the historical runs, the forecast results include one or more ensemble member results for each time period. These are identified as `member` which you might think of as replicates.  
 
+Here we show retrieving all of the members.
 
 ```{r}
-s = cefi_var(nc)
+s = cefi_var(nc, collapse_fun = NULL)
 s
 ```
-In this case, there are two variables, `tob` (temperature of bottom) and `tob_anom` temperature of bottom anomaly.  Below we show only `tob`.
+
+To see the ensemble results for one date, we can slice-and-dice using indexing.In this case, there are two variables, `tob` (temperature of bottom) and `tob_anom` temperature of bottom anomaly.  Below we show only `tob`.
 
 ```{r}
-plot(s['tob'], hook = plot_coast)
+times = st_get_dimension_values(s, "time")
+plot(s['tob'][,,,,1], hook = plot_coast)
+```
+
+
+Requesting all members for a given time is possible as shown above, but a more common use case is to extract a summary (mean or median) or a measure of variability (standard deviation or variance).
+
+```{r}
+s = cefi_var(nc, collapse_fun = mean)
+s
+```
+
+Note that the dimensionality is reduced because we computed the mean of the ensembles at each time. 
+
+```{r collaped_mean_plot}
+plot(s['tob'], hook = plot_coast, main = "Mean Temp of Bottom")
+```
+
+
+### Granularity
+
+Here we highlight the granularity of the data source by zooming in on the New England coastline. You can see that large embayments such as Penobscot and Narragansett bays are not included. 
+
+```{r granularity}
+plot(dplyr::slice(s['tob'], "time",  1),
+     xlim = c(-72 , -63),
+     ylim = c(39, 45),
+     reset = FALSE,
+     axes = TRUE)
+plot(coast, add = TRUE, col = "orange")
 ```

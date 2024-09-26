@@ -6,19 +6,19 @@
 \usage{
 cefi_stars(
   x = cefi_open(),
-  collapse = NULL,
+  collapse_fun = mean,
   na.rm = TRUE,
-  var = cefi_var(x)[1]
+  var = cefi_active(x)
 )
 }
 \arguments{
 \item{x}{tidync, likely filtered with hyper_filter}
 
-\item{collapse}{NULL or a function for computing summary stats}
-
 \item{na.rm}{logical, see \code{mean}}
 
 \item{var}{chr, the variable to retrieve}
+
+\item{collapse}{NULL or a function for computing summary stats}
 }
 \value{
 stars object

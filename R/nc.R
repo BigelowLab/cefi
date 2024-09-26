@@ -116,20 +116,42 @@ cefi_stars = function(x = cefi_open(),
       dplyr::pull()
   }
 
-  rr = lapply(names(a),
-    function(nm){
+  if (!is.null(collapse_fun)){
+    rr = lapply(names(a),
+      function(nm){
+          xx = apply(a[[nm]], 3,
+                function(m){
+                    dimnames(m) <- NULL
+                    stars::st_as_stars(m) |>
+                      stars::st_as_stars(curvilinear = list(X1=lonlat$lon, X2=lonlat$lat)) |>
+                      sf::st_set_crs(4326) |>
+                    rlang::set_names(nm) |>
+                      stars::st_set_dimensions(names = c("x", "y"))
+                }, simplify = FALSE)
+          # see https://github.com/r-spatial/stars/issues/440
+          do.call(c, append(xx, list(along =  3))) |>
+            stars::st_set_dimensions(3, names = "time", values = tc)
+      }) 
+  } else {
+    
+    rr = lapply(names(a),
+      function(nm){         
         xx = apply(a[[nm]], 3,
-              function(m){
-                  dimnames(m) <- NULL
-                  stars::st_as_stars(m) |>
-                    stars::st_as_stars(curvilinear = list(X1=lonlat$lon, X2=lonlat$lat)) |>
-                    sf::st_set_crs(4326) |>
-                  rlang::set_names(nm)
-              }, simplify = FALSE)
+                   function(m){
+                     dimnames(m) <- NULL
+                     stars::st_as_stars(m) |>
+                       stars::st_as_stars(curvilinear = list(X1=lonlat$lon, X2=lonlat$lat)) |>
+                       sf::st_set_crs(4326) |>
+                       rlang::set_names(nm) |>
+                       stars::st_set_dimensions(names = c("x", "y", "member"))
+                   }, simplify = FALSE)
         # see https://github.com/r-spatial/stars/issues/440
-        do.call(c, append(xx, list(along =  3))) |>
-          stars::st_set_dimensions(3, names = "time", values = tc)
-    }) 
+        do.call(c, append(xx, list(along =  4))) |>
+          stars::st_set_dimensions(4, names = "time", values = tc)
+      })
+    
+    
+  }
   do.call(c, rr)
 }
 
@@ -153,13 +175,15 @@ cefi_active = function(x){
 #' @param x the tidync object (possibly pre-filtered)
 #' @param var chr, the variable to retrieve
 #' @param form one of 'tidync_data' or 'stars'
+#' @param ... other arguments passed through
 #' @return either 'tidync_data' or 'stars' object
 cefi_var = function(x = cefi_open(),
                     var = cefi_active(x),
-                    form = c("tidync_data", "stars")[2]){
+                    form = c("tidync_data", "stars")[2],
+                    ...){
   
   switch(tolower(form[1]),
-         "stars" = cefi_stars(x, var = var),
+         "stars" = cefi_stars(x, var = var, ...),
          tidync::hyper_array(x, select_var = var))
   
 }
