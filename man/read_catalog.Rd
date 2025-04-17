@@ -4,7 +4,7 @@
 \alias{read_catalog}
 \title{Read the CEFI catalog}
 \usage{
-read_catalog(uri = catalog_uri(region = "NWA", period = "history"))
+read_catalog(uri = catalog_uri(region = "NWA", xcast = "hindcast"))
 }
 \arguments{
 \item{uri}{chr, the URI of the json resource}

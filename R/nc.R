@@ -7,15 +7,17 @@ cefi_open = function(x = read_catalog() |> dplyr::slice(1)){
   stopifnot(inherits(x, "CEFI_catalog"))
   silent = options(tidync.silent = TRUE)
   on.exit(options(tidync.silent = silent[[1]]))
-  nc = tidync::tidync(x$OPeNDAP_URL[1])
-  
+  nc = tidync::tidync(x$cefi_opendap[1])
+  grid_type = x$cefi_grid_type[1]
   # transfer the region and period
-  attr(nc, "cefi_region") = attr(x, "cefi_region") 
-  attr(nc, "cefi_period") = attr(x, "cefi_period") 
-  
-  static = static_open(x) |>
-    tidync::activate("geolon")
-  set_static(nc,static)
+  nc = set_attrs(nc, c(get_attrs(x), grid_type = x$cefi_grid_type[1]))
+  # we don't need the static data if the grid is lonlat regular
+  if (x$cefi_grid_type[1] == "raw"){
+    static = static_open(x) |>
+      tidync::activate("geolon")
+    nc = append_attrs(nc, "static", static)
+  }
+  nc
 }
 
 #' Get the transformed time dimension, add a POSIXct time variable
@@ -28,14 +30,15 @@ cefi_open = function(x = read_catalog() |> dplyr::slice(1)){
 cefi_time = function(x = cefi_open(),
                      form = c("POSIXct", "Date")[2]){
   if (inherits(x, "tidync")){
-    if (attr(x,"cefi_period") == "history"){
+    attrs = get_attrs(x)
+    if (attrs[["xcast"]] == "hindcast"){
       x = tidync::activate(x, "time") |>
         tidync::hyper_transforms() |>
         getElement(1) 
       x = dplyr::mutate(x, time_ = as.POSIXct(.data$timestamp, format = "%Y-%m-%d %H:%H:%S", tz = "UTC"))
       if (tolower(form[1]) == "date") x = dplyr::mutate(x, time_ = as.Date(.data$time_))
       x
-    } else if (attr(x,"cefi_period") == "forecast") {
+    } else if (attrs[["xcast"]] %in% c("reforecast", "forecast")) {
       epoch = x[['attribute']] |>
         dplyr::filter(variable == "init", name == "units") |>
         dplyr::pull(value) |>
@@ -52,7 +55,7 @@ cefi_time = function(x = cefi_open(),
         dplyr::mutate(time_ = seq(from = epoch, length = n(), by = step))
       if (tolower(form[1]) == "posixct") x = dplyr::mutate(x, time_ = as.POSIXct(.data$time_, tz = "UTC"))
     } else {
-      stop("cefi_period in unknown - must be history or forecast")
+      stop("cefi_xcast is unknown - must be hindcast or reforecast, or forecast")
     }
   } else {
     stop("input must be of class tidync")
@@ -91,8 +94,7 @@ cefi_stars = function(x = cefi_open(),
                       na.rm = TRUE,
                       var = cefi_active(x)){
   
-  static = get_static(x) |>
-    tidync::activate("geolon")
+
   a = tidync::hyper_array(x, select_var = var, drop = FALSE)
   if(!is.null(collapse_fun)){
     a = lapply(a, 
@@ -103,56 +105,67 @@ cefi_stars = function(x = cefi_open(),
                })
   }
   ax = cefi_transforms(x)
-  sx = tidync::hyper_transforms(static)
+  attrs = get_attrs(x)
   
-  lonlat = static_lonlat(x)
+  if (attrs[["grid_type"]] == "raw"){
+    static = attrs[['static']] |>
+      tidync::activate("geolon")
+    sx = tidync::hyper_transforms(static)
+    lonlat = static_lonlat(x)
+    xcast = attrs[["xcast"]]
+    if (xcast == "hindcast"){
+      tc = dplyr::filter(ax[[3]], .data$selected) |> dplyr::pull()
+    } else if (xcast %in% c("reforecast", "forecast")){
+      tc = cefi_time(x) |>
+        dplyr::filter(selected) |> 
+        dplyr::pull()
+    }
   
-  period = attr(x, "cefi_period")
-  if (period == "history"){
-    tc = dplyr::filter(ax[[3]], .data$selected) |> dplyr::pull()
-  } else if (period == "forecast"){
-    tc = cefi_time(x) |>
-      dplyr::filter(selected) |> 
-      dplyr::pull()
-  }
-
-  if (!is.null(collapse_fun)){
-    rr = lapply(names(a),
-      function(nm){
+    if (!is.null(collapse_fun)){
+      rr = lapply(names(a),
+        function(nm){
+            xx = apply(a[[nm]], 3,
+                  function(m){
+                      dimnames(m) <- NULL
+                      stars::st_as_stars(m) |>
+                        stars::st_as_stars(curvilinear = list(X1=lonlat$lon, X2=lonlat$lat)) |>
+                        sf::st_set_crs(4326) |>
+                      rlang::set_names(nm) |>
+                        stars::st_set_dimensions(names = c("x", "y"))
+                  }, simplify = FALSE)
+            # see https://github.com/r-spatial/stars/issues/440
+            do.call(c, append(xx, list(along =  3))) |>
+              stars::st_set_dimensions(3, names = "time", values = tc)
+        }) 
+    } else {
+      
+      rr = lapply(names(a),
+        function(nm){         
           xx = apply(a[[nm]], 3,
-                function(m){
-                    dimnames(m) <- NULL
-                    stars::st_as_stars(m) |>
-                      stars::st_as_stars(curvilinear = list(X1=lonlat$lon, X2=lonlat$lat)) |>
-                      sf::st_set_crs(4326) |>
-                    rlang::set_names(nm) |>
-                      stars::st_set_dimensions(names = c("x", "y"))
-                }, simplify = FALSE)
+                     function(m){
+                       dimnames(m) <- NULL
+                       stars::st_as_stars(m) |>
+                         stars::st_as_stars(curvilinear = list(X1=lonlat$lon, X2=lonlat$lat)) |>
+                         sf::st_set_crs(4326) |>
+                         rlang::set_names(nm) |>
+                         stars::st_set_dimensions(names = c("x", "y", "member"))
+                     }, simplify = FALSE)
           # see https://github.com/r-spatial/stars/issues/440
-          do.call(c, append(xx, list(along =  3))) |>
-            stars::st_set_dimensions(3, names = "time", values = tc)
-      }) 
+          do.call(c, append(xx, list(along =  4))) |>
+            stars::st_set_dimensions(4, names = "time", values = tc)
+        })
+      
+      
+    }
+    r = do.call(c, rr)
   } else {
+    # regular lonlat grid
     
-    rr = lapply(names(a),
-      function(nm){         
-        xx = apply(a[[nm]], 3,
-                   function(m){
-                     dimnames(m) <- NULL
-                     stars::st_as_stars(m) |>
-                       stars::st_as_stars(curvilinear = list(X1=lonlat$lon, X2=lonlat$lat)) |>
-                       sf::st_set_crs(4326) |>
-                       rlang::set_names(nm) |>
-                       stars::st_set_dimensions(names = c("x", "y", "member"))
-                   }, simplify = FALSE)
-        # see https://github.com/r-spatial/stars/issues/440
-        do.call(c, append(xx, list(along =  4))) |>
-          stars::st_set_dimensions(4, names = "time", values = tc)
-      })
+    
     
     
   }
-  do.call(c, rr)
+  r
 }
 
 #' Retrieve one or more names of the active grids
@@ -202,10 +215,8 @@ cefi_var = function(x = cefi_open(),
 cefi_filter = function(x, time = NULL, ...){
   dots = as.list(substitute(list(...)))[-1L]
   if ("time" %in% names(dots)) stop("time must be listed as the first filtering argument after input x")
- 
-  
-  period = attr(x, "cefi_period")
-  if (period == "history"){
+  attrs = get_attrs(x)
+  if (attrs[['xcast']] == "hindcast"){
     if (!is.null(time)){
       if (is.numeric(x)){
         x = tidync::hyper_filter(x, dplyr::between(time, time[1], time[2]))
@@ -217,7 +228,7 @@ cefi_filter = function(x, time = NULL, ...){
         x = tidync::hyper_filter(x, time = dplyr::between(time, ix[1], ix[2]))
       }
     }
-  } else if (period == "forecast"){
+  } else if (xcast == c("reforecast", "forecast")){
     if (is.numeric(x)){
       x = tidync::hyper_filter(x, dplyr::between(lead, time[1], time[2]))
     } else {
@@ -228,10 +239,12 @@ cefi_filter = function(x, time = NULL, ...){
       x = tidync::hyper_filter(x, lead = dplyr::between(lead, ix[1], ix[2]))
     }
   } else {
-    stop("period of data must be 'history' or 'forecast'")
+    stop("xcast of data must be 'hindcast', 'reforecast' or 'forecast'")
   }
   
   x = tidync::hyper_filter(x, ...)
-  attr(x, "static") = tidync::hyper_filter(attr(x, "static"), ...)
+  if (attrs[["grid_type"]] == "raw"){
+    append_attr(x, "static") = tidync::hyper_filter(attrs[["static"]], ...)
+  }
   x
 }

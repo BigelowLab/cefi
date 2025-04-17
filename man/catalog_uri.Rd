@@ -2,24 +2,27 @@
 % Please edit documentation in R/catalog.R
 \name{catalog_uri}
 \alias{catalog_uri}
-\title{Retrieve a catalog based upon region and period}
+\title{Retrieve a catalog based upon region and xcast}
 \usage{
 catalog_uri(
-  period = c("history", "forecast")[1],
+  xcast = c("hindcast", "seasonal_reforecast", "seasonal_forecast")[1],
   region = c("NWA", "NEP")[1],
-  stub = "https://psl.noaa.gov/cefi_portal/data_index"
+  stub = "https://psl.noaa.gov/cefi_portal/data_index",
+  name_prefix = "cefi_data_indexing.Projects.CEFI.regional_mom6.cefi_portal"
 )
 }
 \arguments{
-\item{period}{chr one of "history" or "forecast"}
+\item{xcast}{chr one of "history" or "forecast"}
 
 \item{region}{chr, one of "Northwest Atlantic", "NWA", "Northeast Pacific" or "NEP"}
 
 \item{stub}{chr the base uri for catalogs}
+
+\item{name_prefix}{chr, the prefix to attach to a filename}
 }
 \value{
 character URL
 }
 \description{
-Retrieve a catalog based upon region and period
+Retrieve a catalog based upon region and xcast
 }
