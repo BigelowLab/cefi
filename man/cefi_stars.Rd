@@ -14,11 +14,11 @@ cefi_stars(
 \arguments{
 \item{x}{tidync, likely filtered with hyper_filter}
 
+\item{collapse_fun}{function reference for collapsing multiple layers or NULL to skip}
+
 \item{na.rm}{logical, see \code{mean}}
 
 \item{var}{chr, the variable to retrieve}
-
-\item{collapse}{NULL or a function for computing summary stats}
 }
 \value{
 stars object

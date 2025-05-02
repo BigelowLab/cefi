@@ -8,8 +8,9 @@ cefi_transforms(x)
 }
 \arguments{
 \item{x}{tidync or tidync_data object}
-
-\item{list}{of one or more tidync axis transform(s)}
+}
+\value{
+list of one or more tidync axis transform(s)
 }
 \description{
 Get the hyper transforms slightly doctored for time

@@ -15,7 +15,7 @@ cefi_open = function(x = read_catalog() |> dplyr::slice(1)){
   if (x$cefi_grid_type[1] == "raw"){
     static = static_open(x) |>
       tidync::activate("geolon")
-    nc = append_attrs(nc, "static", static)
+    nc = append_attr(nc, "static", static)
   }
   nc
 }
@@ -40,19 +40,19 @@ cefi_time = function(x = cefi_open(),
       x
     } else if (attrs[["xcast"]] %in% c("reforecast", "forecast")) {
       epoch = x[['attribute']] |>
-        dplyr::filter(variable == "init", name == "units") |>
-        dplyr::pull(value) |>
+        dplyr::filter(.data$variable == "init", .data$name == "units") |>
+        dplyr::pull(dplyr::all_of("value")) |>
         getElement(1) |>
         as.Date(format = "days since %Y-%m-%d")
       step = x[['attribute']] |>
-        dplyr::filter(variable == "lead", name == "units") |>
-        dplyr::pull(value) |>
+        dplyr::filter(.data$variable == "lead", .data$name == "units") |>
+        dplyr::pull(dplyr::all_of("value")) |>
         getElement(1)
       
       x = tidync::activate(x, "lead") |>
         tidync::hyper_transforms() |>
         getElement(1) |>
-        dplyr::mutate(time_ = seq(from = epoch, length = n(), by = step))
+        dplyr::mutate(time_ = seq(from = epoch, length = dplyr::n(), by = step))
       if (tolower(form[1]) == "posixct") x = dplyr::mutate(x, time_ = as.POSIXct(.data$time_, tz = "UTC"))
     } else {
       stop("cefi_xcast is unknown - must be hindcast or reforecast, or forecast")
@@ -67,7 +67,7 @@ cefi_time = function(x = cefi_open(),
 #' 
 #' @export
 #' @param x tidync or tidync_data object
-#' @param list of one or more tidync axis transform(s)
+#' @return list of one or more tidync axis transform(s)
 cefi_transforms = function(x){
   if (inherits(x, "tidync")){
     ax = tidync::hyper_transforms(x)
@@ -85,8 +85,8 @@ cefi_transforms = function(x){
 #' 
 #' @export 
 #' @param x tidync, likely filtered with hyper_filter
+#' @param collapse_fun function reference for collapsing multiple layers or NULL to skip
 #' @param var chr, the variable to retrieve
-#' @param collapse NULL or a function for computing summary stats
 #' @param na.rm logical, see \code{mean}
 #' @return stars object
 cefi_stars = function(x = cefi_open(), 
@@ -117,7 +117,7 @@ cefi_stars = function(x = cefi_open(),
       tc = dplyr::filter(ax[[3]], .data$selected) |> dplyr::pull()
     } else if (xcast %in% c("reforecast", "forecast")){
       tc = cefi_time(x) |>
-        dplyr::filter(selected) |> 
+        dplyr::filter(.data$selected) |> 
         dplyr::pull()
     }
   
@@ -175,8 +175,9 @@ cefi_stars = function(x = cefi_open(),
 #' @return character vector of active variable names
 cefi_active = function(x){
   act = tidync::active(x)
-  dplyr::filter(x$grid, grid == act) |>
-    dplyr::pull(variables) |>
+  x$grid |> 
+    dplyr::filter(.data$grid == act) |>
+    dplyr::pull(dplyr::all_of("variables")) |>
     getElement(1) |>
     dplyr::pull()
 }
@@ -228,15 +229,15 @@ cefi_filter = function(x, time = NULL, ...){
         x = tidync::hyper_filter(x, time = dplyr::between(time, ix[1], ix[2]))
       }
     }
-  } else if (xcast == c("reforecast", "forecast")){
+  } else if (attrs[['xcast']] %in% c("reforecast", "forecast")){
     if (is.numeric(x)){
-      x = tidync::hyper_filter(x, dplyr::between(lead, time[1], time[2]))
+      x = tidync::hyper_filter(x, dplyr::between(.data$lead, time[1], time[2]))
     } else {
       if (inherits(time, "POSIXt")) time = as.Date(time)
       ax = cefi_time(x)
       ix = findInterval(time, ax$time_)
       ix[ix < 1] = 1
-      x = tidync::hyper_filter(x, lead = dplyr::between(lead, ix[1], ix[2]))
+      x = tidync::hyper_filter(x, lead = dplyr::between(.data$lead, ix[1], ix[2]))
     }
   } else {
     stop("xcast of data must be 'hindcast', 'reforecast' or 'forecast'")
@@ -244,7 +245,7 @@ cefi_filter = function(x, time = NULL, ...){
   
   x = tidync::hyper_filter(x, ...)
   if (attrs[["grid_type"]] == "raw"){
-    append_attr(x, "static") = tidync::hyper_filter(attrs[["static"]], ...)
+    append_attr(x, "static", tidync::hyper_filter(attrs[["static"]], ...))
   }
   x
 }

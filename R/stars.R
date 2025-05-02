@@ -14,7 +14,7 @@ tidync_as_stars <- function(x, ...) {
   ## this needs to be a bit easier ...
   transforms <- tidync:::active_axis_transforms(x)
   dims <- lapply(names(transforms), function(trname) {
-    transform <- transforms[[trname]] %>% dplyr::filter(selected)
+    transform <- transforms[[trname]] |> dplyr::filter(.data$selected)
     values <- transform[[trname]]
     if (length(values) > 1) {
       stars:::create_dimension(

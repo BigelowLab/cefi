@@ -12,26 +12,29 @@ get_attrs <- function(x, namespace = "cefi"){
   attr(x, namespace)
 }
 
+#' @export
 #' @rdname get_attrs
 set_attrs <- function(x, value, namespace = "cefi"){
   attr(x, namespace) <- value
   invisible(x)
 }
 
+#' @export
 #' @rdname get_attrs
 append_attr <- function(x, name, value, namespace = "cefi"){
   a <- get_attrs(x, namespace = namespace)
   a[[name]] = value
-  attributes(x, "cefi") <- a
+  attr(x, namespace) <- a
   invisible(x)
 }
 
-
+#' @export
 #' @rdname get_attrs
 get_attr <- function(x, name, namespace = "cefi"){
   attr(x, namespace)[[name]]
 }
 
+#' @export
 #' @rdname get_attrs
 set_attr <- function(x, name, value, namespace = "cefi"){
   a = attr(x, namespace)

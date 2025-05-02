@@ -54,7 +54,8 @@ catalog_uri = function(xcast = c("hindcast",
 #' 
 #' @export
 #' @param uri chr one or more catalog_uris
-#' @param name_prefix 
+#' @param name_prefix chr the name prefix (of course)
+#' @return a table of parse table components
 parse_catalog_uri = function(uri = catalog_uri(),
                              name_prefix = "cefi_data_indexing.Projects.CEFI.regional_mom6.cefi_portal.") {
   stub = dirname(uri)

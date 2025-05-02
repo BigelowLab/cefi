@@ -10,9 +10,12 @@ License: GNU3 + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)
+Depends:
+  R (>= 4.1.0)
 Imports:
   rlang,
   jsonlite,
+  units,
   tidync,
   stars,
   sf,

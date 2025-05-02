@@ -12,7 +12,10 @@ parse_catalog_uri(
 \arguments{
 \item{uri}{chr one or more catalog_uris}
 
-\item{name_prefix}{}
+\item{name_prefix}{chr the name prefix (of course)}
+}
+\value{
+a table of parse table components
 }
 \description{
 Parse one or more URIs
