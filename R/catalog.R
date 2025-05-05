@@ -23,13 +23,17 @@ catalog_uri = function(xcast = c("hindcast",
     name_prefix = "cefi_data_indexing.Projects.CEFI.regional_mom6.cefi_portal"
   }
   
-  reg = switch(tolower(region[1]),
-    "northwest atlantic" = "northwest_atlantic", 
-    "nwa" = "northwest_atlantic", 
-    "nep" = "northeast_pacific",
-    stop("region not known: ", region[1]))
-  xcast = tolower(xcast[1])
-
+  exp_type = tolower(xcast[1])
+  if (exp_type %in% names(CEFI_EXPERIMENT_TYPE)){
+    exp_type = CEFI_EXPERIMENT_TYPE[exp_type]
+  }
+  
+  reg = tolower(region[1])
+  if(reg %in% names(CEFI_REGIONS)){
+    reg = CEFI_REGIONS[reg]
+  } 
+  
+  
 
   # pre March 2025
   # https://psl.noaa.gov/cefi_portal/var_list_northwest_atlantic_hist_run.json
@@ -46,7 +50,7 @@ catalog_uri = function(xcast = c("hindcast",
           .Platform$file.sep, 
           name_prefix[1],
           reg,
-          xcast)
+          exp_type)
 }
 
 

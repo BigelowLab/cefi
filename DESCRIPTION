@@ -1,7 +1,7 @@
 Package: cefi
 Type: Package
 Title: Gulf Stream data
-Version: 0.1.0
+Version: 0.2.0
 Author: Ben Tupper [aut, cre] <btupper@bigelow.org>
 Maintainer: Ben Tupper <btupper@bigelow.org>
 URL: https://github.com/bigelowlab/cefi
