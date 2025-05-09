@@ -10,7 +10,7 @@ cefi_filter(x, time = NULL, ...)
 \arguments{
 \item{x}{tidync object}
 
-\item{time}{NULL or a two element vector of Date or POSIXct start and stop times
+\item{time}{NULL or a two element vector of index, Date or POSIXct start and stop times
 \code{time} must be provided \strong{before} any other filtering arguments.}
 
 \item{...}{other arguments passed to \code{\link[tidync]{hyper_filter}}}

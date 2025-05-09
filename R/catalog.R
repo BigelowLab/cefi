@@ -136,9 +136,16 @@ which_xcast = function(x, varname = "cefi_opendap"){
 #' @return table of metadata (of class CEFI_catalog)
 read_catalog = function(uri = catalog_uri(region = "NWA", xcast = "hindcast")){
   
+  swap_na = function(x){
+    for (i in seq_len(ncol(x))) x[[i]][x[[i]] == "N/A"] <- NA_character_
+    x
+  }
+  
   x = jsonlite::read_json(uri, simplifyVector= TRUE) |>
     lapply(dplyr::as_tibble) |>
-    dplyr::bind_rows()
+    dplyr::bind_rows() |>
+    swap_na()
+  
   class(x) = c("CEFI_catalog", class(x))
   x = set_attrs(x, list(region = which_region(x), xcast = which_xcast(x)))
   x

@@ -1,3 +1,34 @@
+#' Shift a stars object from [0,360] to [-180, 180] (or the other way)
+#' 
+#' @export
+#' @param x a stars object 
+#' @param to num either 180 (meaning -180 to 180) or 360 (0 to 360) 
+#' @param name chr the name of the dimension along which the shift is made 
+shift_stars = function(x, to = c(180, 360)[1], name = "x"){
+  
+  d = stars::st_dimensions(x)
+  lon = if (to < 360) {
+      d[[name]]$offset <- d[[name]]$offset |> to180() 
+    } else {
+      d[[name]]$offset <- d[[name]]$offset |> to360() 
+    }
+    
+  stars::st_dimensions(x) <- d
+  x
+}
+
+#' Retrieve a bounding box ala [sf::st_bbox]
+#'
+#' @export
+#' @param x tidync object
+#' @return [sf::st_bbox]
+tidync_bbox <- function(x){
+  ax = tidync::hyper_transforms(x)
+  xr = range(ax$lon$lon)
+  yr = range(ax$lat$lat)
+  sf::st_bbox(c(xmin = xr[1], ymin = yr[1], xmax = xr[2], ymax = yr[2]), crs = 4326)
+}
+
 #' Cast a tidync object to stars
 #'
 #' Taken from https://github.com/ropensci/tidync/issues/68#issuecomment-484773118

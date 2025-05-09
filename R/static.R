@@ -41,8 +41,8 @@ static_lonlat = function(x){
 #' @return character url for the opendap resource
 static_url = function(region = c("nwa", "nep")[1]){
   switch(tolower(region[1]),
-    "nwa" = "http://psl.noaa.gov/thredds/dodsC/Projects/CEFI/regional_mom6/northwest_atlantic/hist_run/ocean_static.nc",
-    "nep" = "http://psl.noaa.gov/thredds/dodsC/Projects/CEFI/regional_mom6/northeast_pacific/hist_run/ocean_static.nc",
+    "nwa" = "http://psl.noaa.gov/thredds/dodsC/Projects/CEFI/regional_mom6/cefi_portal/northwest_atlantic/full_domain/hindcast/daily/raw/latest/ocean_static.nc",
+    "nep" = "http://psl.noaa.gov/thredds/dodsC/Projects/CEFI/regional_mom6/cefi_portal/northeast_pacific/full_domain/hindcast/monthly/raw/latest/ocean_static.nc",
     NA_character_)
 }
 
@@ -56,7 +56,7 @@ static_open = function(x = read_catalog() |> dplyr::slice(1)){
   silent = options(tidync.silent = TRUE)
   on.exit(options(tidync.silent = silent[[1]]))
   
-  reg = attr(x, "cefi_region")
+  reg = get_attr(x, "region")
   uri = static_url(reg)
   
   tidync::tidync(uri)

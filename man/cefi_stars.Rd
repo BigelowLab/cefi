@@ -8,21 +8,28 @@ cefi_stars(
   x = cefi_open(),
   collapse_fun = mean,
   na.rm = TRUE,
-  var = cefi_active(x)
+  vars = cefi_active(x),
+  shift = TRUE
 )
 }
 \arguments{
 \item{x}{tidync, likely filtered with hyper_filter}
 
-\item{collapse_fun}{function reference for collapsing multiple layers or NULL to skip}
+\item{collapse_fun}{function reference for collapsing multiple 'member' layers or NULL to skip}
 
-\item{na.rm}{logical, see \code{mean}}
+\item{na.rm}{logical, passed to the \code{collapse_fun} if used}
 
-\item{var}{chr, the variable to retrieve}
+\item{vars}{chr, the variable to retrieve}
+
+\item{shift}{one of 180, 360 or TRUE or FALSE.  If 180 or 360 then
+shift the output to the desired longitude range, if FALSE then do no
+intervention, and if TRUE then try to shift the appropriate way. This
+is only used when a "regrid" \code{cefi_grid_type} is provided by \code{x}.}
 }
 \value{
 stars object
 }
 \description{
-Extract data as stars
+If a requested product is an ensemble (with replicate runs), you have the option
+to collapse the multiple runs into a single item - typically with \code{mean}.
 }

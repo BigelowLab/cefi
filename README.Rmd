@@ -7,7 +7,20 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-[NOAA's Physical Science Laboratory (PSL)](https://psl.noaa.gov/) [Climate Ecosystems and Fisheries Initiative Portal](https://psl.noaa.gov/cefi_portal/) serves historical and forecast data useful in ecological studies. Data is served using a [THREDDS](https://psl.noaa.gov/thredds/catalog/Projects/CEFI/regional_mom6/catalog.html) catalog, but PSL also makes [tabular catalogs](https://psl.noaa.gov/cefi_portal/var_list_northwest_atlantic_hist_run.html) available, too.
+[NOAA's Physical Science Laboratory (PSL)](https://psl.noaa.gov/) [Changing Ecosystems and Fisheries Initiative Portal](https://psl.noaa.gov/cefi_portal/) serves historical and forecast data useful in ecological studies. Data is served using a [THREDDS](https://psl.noaa.gov/thredds/catalog/Projects/CEFI/regional_mom6/cefi_portal/catalog.html) catalog, but PSL also makes [tabular variable catalogs](https://psl.noaa.gov/cefi_portal/#data_access) available, too.
+
+### Variable Catalogs ("catalogs")
+
+This package leverages the variable catalog listings to access ointers to data sets.  This system works well, but we are reliant on the catalog matching the data products offered.  Catalogs are organized by region ("nwa", "nep", *etc*) and by experiment type ("hindcast", "seasonal_forecast", "seasonal_reforecast", *etc*).
+
+### THREDDS 
+
+If you wish to use a THREDDS catalog service try the [cefitds R package](https://github.com/BigelowLab/cefitds).  Keep in mind that the THREDDS catalog is used for searching for data (programmatically), but once you have found the data, you will want to bring your findings back here to use this package to access the data.
+
+### OPeNDAP/NETCDF
+
+Ultimately, you will use the search tools here to access a URL to an OPeNDAP resource (NETCDF).  There are many tools for accessing OPeNDAP/NETCDF data, but for this work we have chosen [tidync](https://CRAN.R-project.org/package=tidync), but [ncdf4](https://CRAN.R-project.org/package=ncdf4) and others could work as well.
+
 
 # Requirements
 
@@ -44,7 +57,7 @@ CEFI offers THREDDS catalogs which are great for mining programmatically, but th
 
 ### Hindcast
 ```{r}
-uri = catalog_uri(region = "Northwest Atlantic", xcast = "hindcast")
+uri = catalog_uri(region = "northwest_atlantic", xcast = "hindcast")
 hindcast = read_catalog(uri) |>
   dplyr::glimpse()
 ```
@@ -57,14 +70,14 @@ count(hindcast, cefi_grid_type)
 
 
 ```{r}
-uri = catalog_uri(region = "Northwest Atlantic", period = "seasonal_reforecast")
+uri = catalog_uri(region = "northwest_atlantic", xcast = "seasonal_reforecast")
 refcst = read_catalog(uri) |>
   dplyr::glimpse()
 ```
 
 
 ```{r}
-uri = catalog_uri(region = "Northwest Atlantic", period = "seasonal_forecast")
+uri = catalog_uri(region = "northwest_atlantic", xcast = "seasonal_forecast")
 fcst = read_catalog(uri) |>
   dplyr::glimpse()
 ```
@@ -101,8 +114,8 @@ Next we filter the array with `cefi_filter()`, so that we can collect a subset o
 
 ```{r}
 nc = cefi_filter(nc, 
-                 time = as.Date(c("1995-12-16", "1995-12-20")), 
-                 lon = lon > 262 & lon < 300,
+                 time = as.Date(c("1993-05-16", "1993-05-20")), 
+                 lon = lon > 285 & lon < 300,
                  lat = lat > 40 & lat < 50)
 ```
 
@@ -136,24 +149,27 @@ Now let's look at forecast data.
 
 ```{r}
 nc = fcst |>
-  dplyr::filter(Variable_Name == "tob" & Time_of_Initialization == "2022-12") |>
+  dplyr::filter(cefi_variable == "tob",
+                cefi_init_date  == "i202504",
+                cefi_grid_type == "regrid") |>
   cefi_open()
-
 nc
 ```
 
 Here time is measured in `lead` time (in months) relative to an initalization date.  But note that the actually time varying dimension is called `lead` even though we address it in the more familiar `time`. Once again we can use `cefi_time()` to expose the time-varying dimension relative to the starting date.
 
 ```{r}
-cefi_time(nc)
+tc = cefi_time(nc)
+tc
 ```
 
+Also note that we have ensemble 'member' is another dimension; it refers to the ensemble identifying member number.  These we can collapse, as shown below, into a single layer.
 
 ```{r}
 nc = cefi_filter(nc, 
-                 time = as.Date(c("1994-12-01", "1995-02-01")), 
-                 xh = xh > -75 & xh < -60,
-                 yh = yh > 40 & yh < 50)
+                 time = tc[c(1,4)], 
+                 lon = lon > 285 & lon < 300,
+                 lat = lat > 40 & lat < 50)
 ```                 
 
 Unlike the historical runs, the forecast results include one or more ensemble member results for each time period. These are identified as `member` which you might think of as replicates.  
@@ -161,7 +177,7 @@ Unlike the historical runs, the forecast results include one or more ensemble me
 Here we show retrieving all of the members.
 
 ```{r}
-s = cefi_var(nc, collapse_fun = NULL)
+s = cefi_var(nc, collapse_fun = mean)
 s
 ```
 
@@ -175,16 +191,25 @@ plot(s['tob'][,,,,1], hook = plot_coast)
 
 Requesting all members for a given time is possible as shown above, but a more common use case is to extract a summary (mean or median) or a measure of variability (standard deviation or variance).
 
-```{r}
+```{r cefi_var}
 s = cefi_var(nc, collapse_fun = mean)
 s
 ```
 
 Note that the dimensionality is reduced because we computed the mean of the ensembles at each time. 
 
+
 ```{r collaped_mean_plot}
 plot(s['tob'], hook = plot_coast, main = "Mean Temp of Bottom")
 ```
+
+
+You may found it easier to work with a raster based on [-180,180] longitudes. We provide a function to "shift" the raster to that range.
+
+```{r shift}
+s = shift_stars(s)
+```
+
 
 
 ### Granularity
