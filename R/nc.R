@@ -316,7 +316,8 @@ cefi_filter = function(x, time = NULL, ...){
         ax = cefi_time(x)
         ix = findInterval(time, ax$time_)
         ix[ix < 1] = 1
-        x = tidync::hyper_filter(x, time = dplyr::between(time, ix[1], ix[2]))
+        x = tidync::hyper_filter(x, 
+                                 time = index >= ix[1] & index <= ix[2])
       }
     }
   } else if (!is.null(time)){
@@ -327,7 +328,7 @@ cefi_filter = function(x, time = NULL, ...){
         ax = cefi_time(x)
         ix = findInterval(time, ax$time_)
         ix[ix < 1] = 1
-        x = tidync::hyper_filter(x, lead = dplyr::between(.data$lead, ix[1], ix[2]))
+        x = tidync::hyper_filter(x, lead = index >= ix[1] & index <= ix[2])
      }
   }
   

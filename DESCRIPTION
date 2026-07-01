@@ -12,7 +12,8 @@ RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)
 LazyData: True
 Depends:
-  R (>= 4.1.0)
+  R (>= 4.1.0),
+  httr
 Imports:
   rlang,
   jsonlite,

@@ -123,6 +123,8 @@ which_xcast = function(x, varname = "cefi_opendap"){
     "seasonal_forecast"
   } else if (grepl("ss_refcast", x[[varname]][1], fixed = TRUE)){
       "seasonal_reforecast"
+  } else if (grepl("dc_fcast", x[[varname]][1], fixed = TRUE)){
+    "decadal_forecast"
   } else{
     stop("unable able to detemine region from URL")
   }
@@ -133,14 +135,20 @@ which_xcast = function(x, varname = "cefi_opendap"){
 #' 
 #' @export
 #' @param uri chr, the URI of the json resource
-#' @return table of metadata (of class CEFI_catalog)
+#' @return table of metadata (of class CEFI_catalog) or NULL if the resource
+#'   in unavailable
 read_catalog = function(uri = catalog_uri(region = "NWA", xcast = "hindcast")){
+
+  if (httr::http_error(uri)){
+    warning("uri not available: ", uri)
+    return(NULL)
+  }  
   
   swap_na = function(x){
     for (i in seq_len(ncol(x))) x[[i]][x[[i]] == "N/A"] <- NA_character_
     x
   }
-  
+
   x = jsonlite::read_json(uri, simplifyVector= TRUE) |>
     lapply(dplyr::as_tibble) |>
     dplyr::bind_rows() |>
