@@ -2,14 +2,18 @@
 % Please edit documentation in R/nc.R
 \name{cefi_subset}
 \alias{cefi_subset}
-\alias{[[.tidync_data}
-\alias{[.tidync_data}
-\title{Subset tidync_data objects}
+\title{Subset a CEFI tidync_data object}
 \usage{
-\method{[[}{tidync_data}(x, i)
+cefi_subset(x, i)
+}
+\arguments{
+\item{x}{a tidync_data object}
 
-\method{[}{tidync_data}(x, i)
+\item{i}{indices (or name(s)) of one or more elements to subset}
+}
+\value{
+a tidync_data object of the selected element(s)
 }
 \description{
-Subset tidync_data objects
+Subset a CEFI tidync_data object
 }

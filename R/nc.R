@@ -139,10 +139,11 @@ cefi_stars = function(x = cefi_open(),
     ix = names(d) == "member"
     index = which(!ix)
     att = attributes(a)
-    a = lapply(seq_along(a), 
-               function(i) {
-                 a[[i]] = apply(a[[i]], index, collapse_fun, na.rm = na.rm)
-                 a[[i]][is.nan(a[[i]])] <- NA
+    a = lapply(a, 
+               function(arr) {
+                 arr = apply(arr, index, collapse_fun, na.rm = na.rm)
+                 arr[is.nan(arr)] <- NA
+                 arr
                })
     att$transforms <-  att$transforms[!ix]
     attributes(a) <- att
@@ -425,30 +426,16 @@ cefi_aggregate = function(x,
   x
 }
 
-#' Subset tidync_data objects
-#' 
-#' @name cefi_subset
-#' @export
-"[[.tidync_data" = function(x, i){
-  
-  att = attributes(x)
-  
-  if (inherits(i, "character")){
-    name = i[1]
-  } else {
-    name = names(x)[i]
-  }
-  att$names <- name
-  x = x[[i]]
-  attributes(x) <- att
-  x
-}
 
-#' @rdname cefi_subset
+
+#' Subset a CEFI tidync_data object
 #' @export
-"[.tidync_data" = function(x, i){
+#' @param x a tidync_data object
+#' @param i indices (or name(s)) of one or more elements to subset
+#' @return a tidync_data object of the selected element(s) 
+cefi_subset = function(x, i){
+  stopifnot(inherits(x, "tidync_data"))
   att = attributes(x)
-  
   if (inherits(index, "character")){
     nms = i
   } else {
