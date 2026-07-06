@@ -12,8 +12,7 @@ RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)
 LazyData: True
 Depends:
-  R (>= 4.1.0),
-  httr
+  R (>= 4.1.0)
 Imports:
   rlang,
   jsonlite,
@@ -21,4 +20,5 @@ Imports:
   tidync,
   stars,
   sf,
-  dplyr
+  dplyr,
+  httr

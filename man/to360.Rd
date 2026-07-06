@@ -2,18 +2,18 @@
 % Please edit documentation in R/misc.R
 \name{to360}
 \alias{to360}
-\title{Convert \verb{[-180,180]} longitudes to \verb{[0, 360]}}
+\title{Convert \verb{-180 to 180} longitudes to \verb{0 to 360}}
 \usage{
 to360(x)
 }
 \arguments{
-\item{x}{numeric vector, no check is done for being within \verb{[0, 360]} range}
+\item{x}{numeric vector, no check is done for being within \verb{0 to 360} range}
 }
 \value{
 numeric vector
 }
 \description{
-Convert \verb{[-180,180]} longitudes to \verb{[0, 360]}
+Convert \verb{-180 to 180} longitudes to \verb{0 to 360}
 }
 \seealso{
 \href{https://gis.stackexchange.com/questions/201789/verifying-formula-that-will-convert-longitude-0-360-to-180-to-180/201793}{gis.stackexchange}

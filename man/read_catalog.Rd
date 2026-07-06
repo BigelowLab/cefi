@@ -10,7 +10,8 @@ read_catalog(uri = catalog_uri(region = "NWA", xcast = "hindcast"))
 \item{uri}{chr, the URI of the json resource}
 }
 \value{
-table of metadata (of class CEFI_catalog)
+table of metadata (of class CEFI_catalog) or NULL if the resource
+in unavailable
 }
 \description{
 Read the CEFI catalog

@@ -310,19 +310,19 @@ cefi_filter = function(x, time = NULL, ...){
   if (attrs[['xcast']] == "hindcast"){
     if (!is.null(time)){
       if (is.numeric(time)){
-        x = tidync::hyper_filter(x, dplyr::between(time, time[1], time[2]))
+        x = tidync::hyper_filter(x, time = dplyr::between(.data$time, time[1], time[2]))
       } else {
         if (inherits(time, "POSIXt")) time = as.Date(time)
         ax = cefi_time(x)
         ix = findInterval(time, ax$time_)
         ix[ix < 1] = 1
         x = tidync::hyper_filter(x, 
-                                 time = index >= ix[1] & index <= ix[2])
+                                 time = .data$index >= ix[1] & .data$index <= ix[2])
       }
     }
   } else if (!is.null(time)){
       if (is.numeric(time)){
-        x = tidync::hyper_filter(x, dplyr::between(.data$lead, time[1], time[2]))
+        x = tidync::hyper_filter(x, time = dplyr::between(.data$lead, time[1], time[2]))
       } else {
         if (inherits(time, "POSIXt")) time = as.Date(time)
         ax = cefi_time(x)
@@ -331,10 +331,43 @@ cefi_filter = function(x, time = NULL, ...){
         x = tidync::hyper_filter(x, lead = index >= ix[1] & index <= ix[2])
      }
   }
-  
   x = tidync::hyper_filter(x, ...)
   if (attrs[["grid_type"]] == "raw"){
     append_attr(x, "static", tidync::hyper_filter(attrs[["static"]], ...))
   }
   x
+}
+
+
+#' A silly function to reset the filters
+#' 
+#' @export
+#' @param x tidync object
+#' @param ... other arguments for hyper_transform
+#' @return the input object with the filters reset
+cefi_reset = function(x, ...){
+  ax = tidync::hyper_transforms(x, ...)
+  for (nm in names(ax)){
+    x = tidync::hyper_filter(x, {{ nm }} := index == ax[[nm]]$index)
+  }
+  x
+}
+
+
+#' Retrieve ncdf4 style indices for start and count
+#' 
+#' @export
+#' @param x tidync object
+#' @return list of start and count 
+nc_index = function(x){
+  ax = tidync::hyper_transforms(x)
+  ss = sapply(names(ax),
+              function(nm){
+                ix = which(ax[[nm]]$selected) |>
+                  range()
+                c(ix, ix[2]-ix[1] + 1)
+              }) |>
+    t()
+  list(start = ss[,1, drop = TRUE],
+       count = ss[,3, drop = TRUE])
 }
