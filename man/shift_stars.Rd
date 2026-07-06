@@ -2,7 +2,7 @@
 % Please edit documentation in R/stars.R
 \name{shift_stars}
 \alias{shift_stars}
-\title{Shift a stars object from \link{0,360} to \link{-180, 180} (or the other way)}
+\title{Shift a stars object from (0,360) to (-180, 180) (or the other way)}
 \usage{
 shift_stars(x, to = c(180, 360)[1], name = "x")
 }
@@ -14,5 +14,5 @@ shift_stars(x, to = c(180, 360)[1], name = "x")
 \item{name}{chr the name of the dimension along which the shift is made}
 }
 \description{
-Shift a stars object from \link{0,360} to \link{-180, 180} (or the other way)
+Shift a stars object from (0,360) to (-180, 180) (or the other way)
 }

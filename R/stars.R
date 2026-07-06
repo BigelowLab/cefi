@@ -1,4 +1,4 @@
-#' Shift a stars object from [0,360] to [-180, 180] (or the other way)
+#' Shift a stars object from (0,360) to (-180, 180) (or the other way)
 #' 
 #' @export
 #' @param x a stars object 

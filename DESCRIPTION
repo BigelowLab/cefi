@@ -1,6 +1,6 @@
 Package: cefi
 Type: Package
-Title: Gulf Stream data
+Title: Access to the CEFI data portal
 Version: 0.2.0
 Author: Ben Tupper [aut, cre] <btupper@bigelow.org>
 Maintainer: Ben Tupper <btupper@bigelow.org>

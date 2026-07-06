@@ -106,7 +106,7 @@ cefi_transforms = function(x){
 #' @export 
 #' @param x tidync, likely filtered with hyper_filter
 #' @param collapse_fun function reference for collapsing multiple 'member' layers or NULL to skip
-#' @param vars chr, the variable to retrieve
+#' @param var chr, the variable to retrieve
 #' @param na.rm logical, passed to the `collapse_fun` if used
 #' @param shift one of 180, 360 or TRUE or FALSE.  If 180 or 360 then
 #'   shift the output to the desired longitude range, if FALSE then do no
@@ -116,13 +116,13 @@ cefi_transforms = function(x){
 cefi_stars = function(x = cefi_open(), 
                       collapse_fun = mean,
                       na.rm = TRUE,
-                      vars = cefi_active(x),
+                      var = cefi_active(x),
                       shift = TRUE){
   if (FALSE){
     x = cefi_open()
     collapse_fun = mean
     na.rm = TRUE
-    vars = cefi_active(x)
+    var = cefi_active(x)
     shift = TRUE
   }
 
@@ -130,17 +130,22 @@ cefi_stars = function(x = cefi_open(),
   attrs = get_attrs(x)
   xcast = attrs[["xcast"]]
   
-  a = tidync::hyper_array(x, select_var = vars, drop = FALSE)
+  a = tidync::hyper_array(x, select_var = var, drop = FALSE)
   
-  # here we determine the 
-  
+  # here we determine if it is ensemble, and if so does the user want 
+  # to collapse them?
   if("member" %in% names(ax) && !is.null(collapse_fun)){
-    a = lapply(a, 
-               function(arr) {
-                 r = apply(arr, 1:3, collapse_fun, na.rm = TRUE)
-                 r[is.nan(r)] <- NA
-                 r
+    d = cefi_dim(a)
+    ix = names(d) == "member"
+    index = which(!ix)
+    att = attributes(a)
+    a = lapply(seq_along(a), 
+               function(i) {
+                 a[[i]] = apply(a[[i]], index, collapse_fun, na.rm = na.rm)
+                 a[[i]][is.nan(a[[i]])] <- NA
                })
+    att$transforms <-  att$transforms[!ix]
+    attributes(a) <- att
   }
 
   
@@ -195,7 +200,7 @@ cefi_stars = function(x = cefi_open(),
     }
     r = do.call(c, rr)
   } else {
-    # regular lonlat grid
+    # regular lonlat re-grid
     lon = dplyr::filter(ax[['lon']], .data$selected) |>
       dplyr::pull(1)
     lat = dplyr::filter(ax[["lat"]], .data$selected) |>
@@ -225,26 +230,53 @@ cefi_stars = function(x = cefi_open(),
       r = do.call(c, rr)
     } else {
       # ensembles
-      rr = lapply(names(a),
-                  function(nm){         
-                    xx = apply(a[[nm]], 3,
-                               function(m){
-                                 dimnames(m) <- NULL
-                                 stars::st_as_stars(m) |>
-                                   #sf::st_set_crs(4326) |>
-                                   rlang::set_names(nm) |>
-                                   stars::st_set_dimensions(1, names = "x", values = lon) |>
-                                   stars::st_set_dimensions(2, names = "y", values = lat) |>
-                                   sf::st_set_crs(4326)
-                               }, simplify = FALSE) 
-                    # see https://github.com/r-spatial/stars/issues/440
-                    do.call(c, append(xx, list(along =  3))) |>
-                      stars::st_set_dimensions(3, names = "time", values = tc)
-                  })
+      d = cefi_dim(a)
+
+      if (length(d) > 3){
+        # here we have lon lat member lead (time)
+        member = dplyr::filter(ax[['member']], .data$selected) |>
+          dplyr::pull(1)
+        rr = lapply(names(a),
+                    function(nm){         
+                      xx = apply(a[[nm]], length(dim(a[[nm]])),
+                                 function(m){
+                                   dimnames(m) <- NULL
+                                   stars::st_as_stars(m) |>
+                                     #sf::st_set_crs(4326) |>
+                                     rlang::set_names(nm) |>
+                                     stars::st_set_dimensions(1, names = "x", values = lon) |>
+                                     stars::st_set_dimensions(2, names = "y", values = lat) |>
+                                     stars::st_set_dimensions(3, names = "member", values = member) |>
+                                     sf::st_set_crs(4326)
+                                 }, simplify = FALSE) 
+                      # see https://github.com/r-spatial/stars/issues/440
+                      do.call(c, append(xx, list(along =  4))) |>
+                        stars::st_set_dimensions(4, names = "time", values = tc)
+                    })
+        r = do.call(c, rr)
+      } else {
+        # it's just lon, lat and lead (time)
+        rr = lapply(names(a),
+                    function(nm){         
+                      xx = apply(a[[nm]], length(dim(a[[nm]])),
+                                 function(m){
+                                   dimnames(m) <- NULL
+                                   stars::st_as_stars(m) |>
+                                     #sf::st_set_crs(4326) |>
+                                     rlang::set_names(nm) |>
+                                     stars::st_set_dimensions(1, names = "x", values = lon) |>
+                                     stars::st_set_dimensions(2, names = "y", values = lat) |>
+                                     sf::st_set_crs(4326)
+                                 }, simplify = FALSE) 
+                      # see https://github.com/r-spatial/stars/issues/440
+                      do.call(c, append(xx, list(along =  3))) |>
+                        stars::st_set_dimensions(3, names = "time", values = tc)
+                    })
+        r = do.call(c, rr)
+      } 
       
-      r = do.call(c, rr)
-      } # ensemble
-    
+    } # ensembles 
+      
     if (is.numeric(shift)){
       r = shift_stars(r, to = shift[1])
     } else if (is.logical(shift) && shift){
@@ -335,6 +367,96 @@ cefi_filter = function(x, time = NULL, ...){
   if (attrs[["grid_type"]] == "raw"){
     append_attr(x, "static", tidync::hyper_filter(attrs[["static"]], ...))
   }
+  x
+}
+
+
+#' Retrieve dimensions for `tidync` or `tidync_data` objects.  
+#'
+#' Note that for `tidync` objects it is the dimensions fo the selected data
+#'
+#' @export
+#' @param x tidync or tidync_data (from hyper_array)
+#' @return a named list of dimension lengths
+cefi_dim = function(x){
+  if (inherits(x, "tidync_data")){
+    d = dim(x[[1]])
+    names(d) = names(dimnames(x[[1]]))
+  } else {
+    ax = tidync::hyper_transforms(x)
+    d = sapply(names(ax),
+               function(nm){
+                 sum(ax[[nm]]$selected)
+               })
+  }
+  d
+}
+
+
+#' Aggregate a dimension in a tidync_data object
+#' 
+#' @export
+#' @param x tidync_data object
+#' @param name chr the name of the dimension to aggregate
+#' @param fun the function used to aggregate (if NULL then the input is returned)
+#' @param na.rm logical, if TRUE pass the na.rm argument along to `fun`
+#' @param nan.rm if TRUE then purge the output of NaN
+#' @return a tidync_data class object with reduced dimensionality
+cefi_aggregate = function(x,
+                          name = "member",
+                          fun = mean,
+                          na.rm = TRUE,
+                          nan.rm = TRUE){
+  stopifnot(inherits(x, "tidync_data"))
+  if (is.null(fun)) return(x)
+  
+  d = cefi_dim(x)
+  ix = names(d) == name[1]
+  if (!any(ix)) stop("dimension name not found:", name[1])
+  index = which(!ix)
+  att = attributes(x)
+  x = lapply(seq_along(x), 
+           function(i) {
+             x[[i]] = apply(x[[i]], index, collapse_fun, na.rm = na.rm)
+             if (nan.rm) x[[i]][is.nan(x[[i]])] <- NA
+           })
+  att$transforms <-  att$transforms[!ix]
+  attributes(x) <- att
+  x
+}
+
+#' Subset tidync_data objects
+#' 
+#' @name cefi_subset
+#' @export
+"[[.tidync_data" = function(x, i){
+  
+  att = attributes(x)
+  
+  if (inherits(i, "character")){
+    name = i[1]
+  } else {
+    name = names(x)[i]
+  }
+  att$names <- name
+  x = x[[i]]
+  attributes(x) <- att
+  x
+}
+
+#' @rdname cefi_subset
+#' @export
+"[.tidync_data" = function(x, i){
+  att = attributes(x)
+  
+  if (inherits(index, "character")){
+    nms = i
+  } else {
+    nms = names(x)[i]
+  }
+  att$names <- nms
+  x <- x[i]
+  attributes(x) <- att
   x
 }
 

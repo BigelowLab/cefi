@@ -8,7 +8,7 @@ cefi_stars(
   x = cefi_open(),
   collapse_fun = mean,
   na.rm = TRUE,
-  vars = cefi_active(x),
+  var = cefi_active(x),
   shift = TRUE
 )
 }
@@ -19,7 +19,7 @@ cefi_stars(
 
 \item{na.rm}{logical, passed to the \code{collapse_fun} if used}
 
-\item{vars}{chr, the variable to retrieve}
+\item{var}{chr, the variable to retrieve}
 
 \item{shift}{one of 180, 360 or TRUE or FALSE.  If 180 or 360 then
 shift the output to the desired longitude range, if FALSE then do no

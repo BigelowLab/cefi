@@ -101,8 +101,6 @@ nc = hindcast |>
 nc
 ```
 
-Note that the spatial dimensions of the "active" grid are defined by `xh` nd `yh` not `x` and `y` or `lon` and `lat`.  That is a choice of the creator of the NetCDF resource, and so we use those names for filtering.
-
 Time requires some background understanding of the CEFI architecture coupled with the `tidync` approach to navigating the NetCDF object.  To ease that for the user we have created a function called `cefi_time()` which is a wrapper around `tidync::hyper_transforms()`, but adds a column called `time_` which can be either 'Date' of 'POSIXct' class.  
 
 ```{r}
@@ -145,13 +143,13 @@ plot(s, hook = plot_coast, key.pos = NULL)
 
 ### Forecast data
 
-Now let's look at forecast data.
+Now let's look at forecast data.  Multiple versions are hosted, we are interested in the most recent.
 
 ```{r}
 nc = fcst |>
   dplyr::filter(cefi_variable == "tob",
-                cefi_init_date  == "i202504",
                 cefi_grid_type == "regrid") |>
+  dplyr::slice_tail(n=1)|>
   cefi_open()
 nc
 ```
@@ -163,12 +161,12 @@ tc = cefi_time(nc)
 tc
 ```
 
-Also note that we have ensemble 'member' is another dimension; it refers to the ensemble identifying member number.  These we can collapse, as shown below, into a single layer.
+Also note that we have ensemble 'member' is another dimension; it refers to the ensemble identifying member number.  These we can collapse, as shown below, into a single layer for each time step.
 
 ```{r}
 nc = cefi_filter(nc, 
-                 time = tc[c(1,4)], 
-                 lon = lon > 285 & lon < 300,
+                 time = tc$time_[c(1,4)], 
+                 lon = lon > -75 & lon < -40,
                  lat = lat > 40 & lat < 50)
 ```                 
 
@@ -176,8 +174,8 @@ Unlike the historical runs, the forecast results include one or more ensemble me
 
 Here we show retrieving all of the members.
 
-```{r}
-s = cefi_var(nc, collapse_fun = mean)
+```{r with_members}
+s = cefi_var(nc, collapse_fun = NULL)
 s
 ```
 
@@ -185,7 +183,7 @@ To see the ensemble results for one date, we can slice-and-dice using indexing.I
 
 ```{r}
 times = st_get_dimension_values(s, "time")
-plot(s['tob'][,,,,1], hook = plot_coast)
+plot(s['tob'], hook = plot_coast)
 ```
 
 
