@@ -305,20 +305,22 @@ cefi_active = function(x){
     dplyr::pull()
 }
 
-
 #' Get a CEFI variable as either a 'tidync_data' or 'stars' object
 #' 
 #' @export
 #' @param x the tidync object (possibly pre-filtered)
 #' @param var chr, the variable to retrieve
 #' @param form one of 'tidync_data' or 'stars'
+#' @param check_size logical, if TRUE check the request size and warn as needed
 #' @param ... other arguments passed through
 #' @return either 'tidync_data' or 'stars' object
 cefi_var = function(x = cefi_open(),
                     var = cefi_active(x),
                     form = c("tidync_data", "stars")[2],
+                    check_size = TRUE,
                     ...){
   
+  if (check_size) x = cefi_check_size(x)
   switch(tolower(form[1]),
          "stars" = cefi_stars(x, var = var, ...),
          tidync::hyper_array(x, select_var = var))
@@ -463,6 +465,34 @@ cefi_reset = function(x, ...){
 }
 
 
+
+#' Check the size of the requested data object and warn if exceeds a specified value
+#' 
+#' @export
+#' @param x tidync or tidync_data object
+#' @param warning_size num, the threshold in MB above which to trigger a warning
+#' @param bytes_per_element num, the number of bytes per element
+#' @return the input object
+cefi_check_size = function(x,
+                         warning_size = 200,
+                         bytes_per_element = 64){
+  
+  s = cefi_size(x, bytes_per_element = bytes_per_element)
+  
+  if (s >= warning_size){
+    warning(sprintf("request size may exceed %iMB at %iMB",
+                    warning_size, s))
+  }
+  x
+}
+
+#' Retrieve the size of the object in MB
+#' @rdname cefi_check_size
+cefi_size = function(x,
+                     bytes_per_element = 64){
+  n = cefi_dim(x) |> prod()
+  n * bytes_per_element/1e6
+}
 #' Retrieve ncdf4 style indices for start and count
 #' 
 #' @export
@@ -480,3 +510,5 @@ nc_index = function(x){
   list(start = ss[,1, drop = TRUE],
        count = ss[,3, drop = TRUE])
 }
+
+

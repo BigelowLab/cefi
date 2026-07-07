@@ -8,6 +8,7 @@ cefi_var(
   x = cefi_open(),
   var = cefi_active(x),
   form = c("tidync_data", "stars")[2],
+  check_size = TRUE,
   ...
 )
 }
@@ -17,6 +18,8 @@ cefi_var(
 \item{var}{chr, the variable to retrieve}
 
 \item{form}{one of 'tidync_data' or 'stars'}
+
+\item{check_size}{logical, if TRUE check the request size and warn as needed}
 
 \item{...}{other arguments passed through}
 }
